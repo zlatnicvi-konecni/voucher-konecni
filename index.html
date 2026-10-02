@@ -560,56 +560,90 @@
 
   function postToAppsScript(data) {
 
-    return new Promise(function(
-      resolve,
-      reject
-    ) {
+    return new Promise(function(resolve, reject) {
 
-      const requestId =
-        makeRequestId();
+      const requestId = makeRequestId();
 
       const iframe =
-        document.getElementById(
-          "apiFrame"
-        );
+        document.getElementById("apiFrame");
 
-      function receive(event) {
+      let form = null;
+      let timeout = null;
 
-        if (
-          event.origin !==
-          "https://script.google.com"
-          &&
-          event.origin !==
-          "https://script.googleusercontent.com"
-        ) {
-          return;
-        }
 
-        const data =
-          event.data;
-
-        if (
-          !data ||
-          data.type !==
-          "voucher-api"
-        ) {
-          return;
-        }
-
-        if (
-          data.requestId !==
-          requestId
-        ) {
-          return;
-        }
+      function cleanup() {
 
         window.removeEventListener(
           "message",
           receive
         );
 
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+
+        if (
+          form &&
+          form.parentNode
+        ) {
+          form.remove();
+        }
+      }
+
+
+      function receive(event) {
+
+        if (
+          event.origin !==
+          "https://script.google.com" &&
+          event.origin !==
+          "https://script.googleusercontent.com"
+        ) {
+          return;
+        }
+
+
+        let response =
+          event.data;
+
+
+        /*
+          Apps Script vrací JSON jako text.
+          Proto ho zde převedeme zpět na objekt.
+        */
+
+        if (
+          typeof response ===
+          "string"
+        ) {
+
+          try {
+
+            response =
+              JSON.parse(response);
+
+          } catch (error) {
+
+            return;
+          }
+        }
+
+
+        if (
+          !response ||
+          response.type !==
+          "voucher-api" ||
+          response.requestId !==
+          requestId
+        ) {
+          return;
+        }
+
+
+        cleanup();
+
         resolve(
-          data.result
+          response.result
         );
       }
 
@@ -620,7 +654,7 @@
       );
 
 
-      const form =
+      form =
         document.createElement(
           "form"
         );
@@ -674,25 +708,29 @@
         form
       );
 
+
       form.submit();
 
-      form.remove();
+
+      /*
+        Formulář nemažeme ihned.
+        Zůstane do dokončení komunikace
+        nebo do vypršení timeoutu.
+      */
 
 
-      setTimeout(function() {
+      timeout =
+        setTimeout(function() {
 
-        window.removeEventListener(
-          "message",
-          receive
-        );
+          cleanup();
 
-        reject(
-          new Error(
-            "Server neodpověděl."
-          )
-        );
+          reject(
+            new Error(
+              "Server neodpověděl."
+            )
+          );
 
-      }, 30000);
+        }, 30000);
 
     });
   }

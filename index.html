@@ -594,13 +594,11 @@
       function receive(event) {
 
         if (
-          event.origin !==
-          "https://script.google.com" &&
-          event.origin !==
-          "https://script.googleusercontent.com"
-        ) {
-          return;
-        }
+  event.origin !== "https://script.google.com" &&
+  !event.origin.endsWith(".script.googleusercontent.com")
+) {
+  return;
+}
 
 
         let response =

@@ -553,185 +553,136 @@
     );
   }
 
+function postToAppsScript(data) {
 
-  // ============================================================
-  // POST DO APPS SCRIPTU
-  // ============================================================
+  return new Promise(function(resolve, reject) {
 
-  function postToAppsScript(data) {
+    const requestId = makeRequestId();
 
-    return new Promise(function(resolve, reject) {
+    const iframe =
+      document.getElementById("apiFrame");
 
-      const requestId = makeRequestId();
-
-      const iframe =
-        document.getElementById("apiFrame");
-
-      let form = null;
-      let timeout = null;
+    let form = null;
+    let timeout = null;
 
 
-      function cleanup() {
+    function cleanup() {
 
-        window.removeEventListener(
-          "message",
-          receive
-        );
-
-        if (timeout) {
-          clearTimeout(timeout);
-        }
-
-        if (
-          form &&
-          form.parentNode
-        ) {
-          form.remove();
-        }
-      }
-
-
-      function receive(event) {
-
-        if (
-  event.origin !== "https://script.google.com" &&
-  !event.origin.endsWith(".script.googleusercontent.com")
-) {
-  return;
-}
-
-
-        let response =
-          event.data;
-
-
-        /*
-          Apps Script vrací JSON jako text.
-          Proto ho zde převedeme zpět na objekt.
-        */
-
-        if (
-          typeof response ===
-          "string"
-        ) {
-
-          try {
-
-            response =
-              JSON.parse(response);
-
-          } catch (error) {
-
-            return;
-          }
-        }
-
-
-        if (
-          !response ||
-          response.type !==
-          "voucher-api" ||
-          response.requestId !==
-          requestId
-        ) {
-          return;
-        }
-
-
-        cleanup();
-
-        resolve(
-          response.result
-        );
-      }
-
-
-      window.addEventListener(
+      window.removeEventListener(
         "message",
         receive
       );
 
+      if (timeout) {
+        clearTimeout(timeout);
+      }
 
-      form =
-        document.createElement(
-          "form"
-        );
-
-      form.method =
-        "POST";
-
-      form.action =
-        API_URL;
-
-      form.target =
-        iframe.name;
-
-      form.style.display =
-        "none";
+      if (
+        form &&
+        form.parentNode
+      ) {
+        form.remove();
+      }
+    }
 
 
-      const payload = {
-        ...data,
-        requestId:
-          requestId
-      };
+    function receive(event) {
+
+      const response = event.data;
+
+      if (
+        !response ||
+        response.type !== "voucher-api" ||
+        response.requestId !== requestId
+      ) {
+        return;
+      }
+
+      cleanup();
+
+      resolve(response.result);
+    }
 
 
-      Object.keys(payload)
-        .forEach(function(key) {
-
-          const input =
-            document.createElement(
-              "input"
-            );
-
-          input.type =
-            "hidden";
-
-          input.name =
-            key;
-
-          input.value =
-            payload[key] == null
-              ? ""
-              : payload[key];
-
-          form.appendChild(
-            input
-          );
-        });
+    window.addEventListener(
+      "message",
+      receive
+    );
 
 
-      document.body.appendChild(
-        form
+    form =
+      document.createElement(
+        "form"
       );
 
+    form.method =
+      "POST";
 
-      form.submit();
+    form.action =
+      API_URL;
+
+    form.target =
+      iframe.name;
+
+    form.style.display =
+      "none";
 
 
-      /*
-        Formulář nemažeme ihned.
-        Zůstane do dokončení komunikace
-        nebo do vypršení timeoutu.
-      */
+    const payload = {
+      ...data,
+      requestId:
+        requestId
+    };
 
 
-      timeout =
-        setTimeout(function() {
+    Object.keys(payload)
+      .forEach(function(key) {
 
-          cleanup();
-
-          reject(
-            new Error(
-              "Server neodpověděl."
-            )
+        const input =
+          document.createElement(
+            "input"
           );
 
-        }, 30000);
+        input.type =
+          "hidden";
 
-    });
-  }
+        input.name =
+          key;
+
+        input.value =
+          payload[key] == null
+            ? ""
+            : payload[key];
+
+        form.appendChild(
+          input
+        );
+      });
+
+
+    document.body.appendChild(
+      form
+    );
+
+
+    form.submit();
+
+
+    timeout =
+      setTimeout(function() {
+
+        cleanup();
+
+        reject(
+          new Error(
+            "Server neodpověděl."
+          )
+        );
+
+      }, 30000);
+
+  });
+}
 
 
   // ============================================================

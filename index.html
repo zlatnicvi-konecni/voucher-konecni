@@ -593,32 +593,9 @@
     );
   }
 
-const authRequestBusy = {
-  create: false,
-  redeem: false
-};
-
-
 function postToAppsScript(data) {
 
   return new Promise(function(resolve, reject) {
-
-    const isAuthAction =
-      data.action === "create" ||
-      data.action === "redeem";
-
-    if (isAuthAction && authRequestBusy[data.action]) {
-      reject(
-        new Error(
-          "Předchozí požadavek ještě probíhá. Počkejte na jeho dokončení."
-        )
-      );
-      return;
-    }
-
-    if (isAuthAction) {
-      authRequestBusy[data.action] = true;
-    }
 
     const requestId = makeRequestId();
 
@@ -645,10 +622,6 @@ function postToAppsScript(data) {
         form.parentNode
       ) {
         form.remove();
-      }
-
-      if (isAuthAction) {
-        authRequestBusy[data.action] = false;
       }
     }
 

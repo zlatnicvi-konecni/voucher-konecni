@@ -519,6 +519,46 @@
   }
 
 
+  // ------------------------------------------------------------
+  // OCHRANNÝ TOKEN PRO CHYBNÉ POKUSY
+  // Token je podepsaný serverem. Tady jej pouze uložíme
+  // pro tento prohlížeč a pošleme zpět při dalším pokusu.
+  // Nikdy do něj neukládáme PIN ani jméno.
+  // ------------------------------------------------------------
+
+  function rateTokenKey(action) {
+    return "voucherRateToken_" + action;
+  }
+
+
+  function getRateToken(action) {
+    try {
+      return localStorage.getItem(rateTokenKey(action)) || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+
+  function saveRateToken(action, token) {
+    try {
+      if (token) {
+        localStorage.setItem(
+          rateTokenKey(action),
+          token
+        );
+      } else {
+        localStorage.removeItem(
+          rateTokenKey(action)
+        );
+      }
+    } catch (error) {
+      // Když localStorage není dostupné, systém funguje dál.
+      // Server je stále zdrojem pravdy.
+    }
+  }
+
+
   function showMessage(
     id,
     text,
@@ -598,6 +638,24 @@ function postToAppsScript(data) {
         return;
       }
 
+      // Odpověď přijímáme jen z našeho konkrétního skrytého iframe.
+      // Neměníme zde pevně event.origin, protože Google Apps Script
+      // může použít svou přesměrovací googleusercontent doménu.
+      if (event.source !== iframe.contentWindow) {
+        return;
+      }
+
+      if (
+        data &&
+        (data.action === "create" || data.action === "redeem") &&
+        response.result
+      ) {
+        saveRateToken(
+          data.action,
+          response.result.rateToken || ""
+        );
+      }
+
       cleanup();
 
       resolve(response.result);
@@ -633,6 +691,19 @@ function postToAppsScript(data) {
       requestId:
         requestId
     };
+
+    // Ochranný token posíláme jen u operací s heslem.
+    // Ověření voucheru (lookup) jej nepotřebuje.
+    if (
+      data.action === "create" ||
+      data.action === "redeem"
+    ) {
+      const rateToken = getRateToken(data.action);
+
+      if (rateToken) {
+        payload.rateToken = rateToken;
+      }
+    }
 
 
     Object.keys(payload)

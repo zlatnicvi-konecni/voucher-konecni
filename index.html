@@ -665,13 +665,6 @@ function postToAppsScript(data) {
         return;
       }
 
-      // Odpověď přijímáme jen z našeho konkrétního skrytého iframe.
-      // Neměníme zde pevně event.origin, protože Google Apps Script
-      // může použít svou přesměrovací googleusercontent doménu.
-      if (event.source !== iframe.contentWindow) {
-        return;
-      }
-
       if (
         data &&
         (data.action === "create" || data.action === "redeem") &&

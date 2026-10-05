@@ -328,7 +328,7 @@
         class="gold no-print"
         onclick="printNiimbotLabel()"
       >
-        🖨️ TISK ŠTÍTKU 21 mm
+        🖨️ TISK ŠTÍTKU 30×20 mm
       </button>
 
       <div id="niimbotMessage" class="message"></div>
@@ -893,11 +893,11 @@ function postToAppsScript(data) {
 
 
   // ============================================================
-  // PŘÍMÝ TISK NIIMBOT B21S – KULATÝ ŠTÍTEK 21 mm
+  // PŘÍMÝ TISK NIIMBOT B21S – ŠTÍTEK 30×20 mm
   //
-  // B21S je 203 dpi. 21 mm odpovídá přibližně 168 bodům.
-  // QR zůstává čtvercový – je uprostřed kulatého štítku.
-  // Kód voucheru je malým písmem pod QR.
+  // B21S je 203 dpi, tedy přibližně 8 bodů na mm.
+  // Pro štítek 30×20 mm používáme 240×160 px.
+  // QR je vlevo, kód voucheru vpravo – aby byl dobře čitelný.
   // ============================================================
 
   const NIIMBOT_B21S_MODEL = {
@@ -909,8 +909,8 @@ function postToAppsScript(data) {
   };
 
   const NIIMBOT_B21S_SIZE = {
-    w_px: 168,
-    h_px: 168,
+    w_px: 240,
+    h_px: 160,
     offset_y_px: 0,
     dpi: 203
   };
@@ -941,14 +941,35 @@ function postToAppsScript(data) {
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // QR – menší a elegantně uprostřed kulatého 21mm štítku.
-          // Číslo voucheru záměrně netiskneme – na 21 mm není dobře čitelné.
-          const qrSize = 125;
-          const qrX = Math.round((168 - qrSize) / 2);
-          const qrY = Math.round((168 - qrSize) / 2);
+          // QR vlevo – dostatečně velký pro spolehlivé načtení mobilem.
+          const qrSize = 126;
+          const qrX = 8;
+          const qrY = Math.round((NIIMBOT_B21S_SIZE.h_px - qrSize) / 2);
 
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
+          // Kód vpravo. Rozdělení do dvou řádků je na 30×20 mm
+          // výrazně čitelnější než jeden dlouhý řádek.
+          const codeText = String(code);
+          const parts = codeText.split("-");
+          let line1 = codeText;
+          let line2 = "";
+          if (parts.length >= 4) {
+            line1 = parts.slice(0, 2).join("-");
+            line2 = parts.slice(2).join("-");
+          }
+
+          ctx.fillStyle = "#000000";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = "700 17px monospace";
+
+          const textCenterX = 190;
+          ctx.fillText(line1, textCenterX, 67);
+          if (line2) {
+            ctx.fillText(line2, textCenterX, 94);
+          }
 
           resolve(canvas.toDataURL("image/png"));
         };

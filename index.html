@@ -941,20 +941,14 @@ function postToAppsScript(data) {
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // QR – přibližně 132 × 132 px, uprostřed.
-          const qrSize = 132;
+          // QR – menší a elegantně uprostřed kulatého 21mm štítku.
+          // Číslo voucheru záměrně netiskneme – na 21 mm není dobře čitelné.
+          const qrSize = 125;
           const qrX = Math.round((168 - qrSize) / 2);
-          const qrY = 5;
+          const qrY = Math.round((168 - qrSize) / 2);
 
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
-
-          // Kód voucheru pod QR.
-          ctx.fillStyle = "#000000";
-          ctx.font = "bold 9px Arial, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(String(code), 84, 153);
 
           resolve(canvas.toDataURL("image/png"));
         };

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Vouchery – Zlatnická dílna Koneční</title>
+  <title>Vouchery – Zlatnická dílna Koneční – verze 30×20 mm</title>
 
   <!--
     QR knihovna.
@@ -224,8 +224,8 @@
       }
 
       #qrcode img {
-        width: 21mm;
-        height: 21mm;
+        width: 30mm;
+        height: 20mm;
       }
 
       .voucher-code {
@@ -949,8 +949,9 @@ function postToAppsScript(data) {
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
 
-          // Kód vpravo. Rozdělení do dvou řádků je na 30×20 mm
-          // výrazně čitelnější než jeden dlouhý řádek.
+          // Kód voucheru je součástí ODESÍLANÉHO OBRÁZKU štítku.
+          // Tedy se do NIIMBOTU neposílá jen QR — tiskárna dostane QR + text.
+          // Rozdělení do dvou řádků je na 30×20 mm čitelné.
           const codeText = String(code);
           const parts = codeText.split("-");
           let line1 = codeText;

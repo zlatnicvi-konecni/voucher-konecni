@@ -12,6 +12,8 @@
     Knihovna pouze běží lokálně v prohlížeči.
   -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.min.js"></script>
+  <!-- Přímý tisk NIIMBOT přes Web Bluetooth (Chrome/Edge) -->
+  <script src="https://cdn.jsdelivr.net/npm/niimbot-web-bluetooth@1.3.5/src/niimbot.js"></script>
 
   <style>
     * {
@@ -222,8 +224,8 @@
       }
 
       #qrcode img {
-        width: 38mm;
-        height: 38mm;
+        width: 21mm;
+        height: 21mm;
       }
 
       .voucher-code {
@@ -324,9 +326,18 @@
 
       <button
         class="gold no-print"
+        onclick="printNiimbotLabel()"
+      >
+        🖨️ TISK ŠTÍTKU 21 mm
+      </button>
+
+      <div id="niimbotMessage" class="message"></div>
+
+      <button
+        class="secondary no-print"
         onclick="window.print()"
       >
-        TISK QR KÓDU
+        ZÁLOŽNÍ TISK PŘES PROHLÍŽEČ
       </button>
 
       <button
@@ -519,46 +530,6 @@
   }
 
 
-  // ------------------------------------------------------------
-  // OCHRANNÝ TOKEN PRO CHYBNÉ POKUSY
-  // Token je podepsaný serverem. Tady jej pouze uložíme
-  // pro tento prohlížeč a pošleme zpět při dalším pokusu.
-  // Nikdy do něj neukládáme PIN ani jméno.
-  // ------------------------------------------------------------
-
-  function rateTokenKey(action) {
-    return "voucherRateToken_" + action;
-  }
-
-
-  function getRateToken(action) {
-    try {
-      return localStorage.getItem(rateTokenKey(action)) || "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-
-  function saveRateToken(action, token) {
-    try {
-      if (token) {
-        localStorage.setItem(
-          rateTokenKey(action),
-          token
-        );
-      } else {
-        localStorage.removeItem(
-          rateTokenKey(action)
-        );
-      }
-    } catch (error) {
-      // Když localStorage není dostupné, systém funguje dál.
-      // Server je stále zdrojem pravdy.
-    }
-  }
-
-
   function showMessage(
     id,
     text,
@@ -593,32 +564,9 @@
     );
   }
 
-const authRequestBusy = {
-  create: false,
-  redeem: false
-};
-
-
 function postToAppsScript(data) {
 
   return new Promise(function(resolve, reject) {
-
-    const isAuthAction =
-      data.action === "create" ||
-      data.action === "redeem";
-
-    if (isAuthAction && authRequestBusy[data.action]) {
-      reject(
-        new Error(
-          "Předchozí požadavek ještě probíhá. Počkejte na jeho dokončení."
-        )
-      );
-      return;
-    }
-
-    if (isAuthAction) {
-      authRequestBusy[data.action] = true;
-    }
 
     const requestId = makeRequestId();
 
@@ -646,10 +594,6 @@ function postToAppsScript(data) {
       ) {
         form.remove();
       }
-
-      if (isAuthAction) {
-        authRequestBusy[data.action] = false;
-      }
     }
 
 
@@ -663,17 +607,6 @@ function postToAppsScript(data) {
         response.requestId !== requestId
       ) {
         return;
-      }
-
-      if (
-        data &&
-        (data.action === "create" || data.action === "redeem") &&
-        response.result
-      ) {
-        saveRateToken(
-          data.action,
-          response.result.rateToken || ""
-        );
       }
 
       cleanup();
@@ -711,19 +644,6 @@ function postToAppsScript(data) {
       requestId:
         requestId
     };
-
-    // Ochranný token posíláme jen u operací s heslem.
-    // Ověření voucheru (lookup) jej nepotřebuje.
-    if (
-      data.action === "create" ||
-      data.action === "redeem"
-    ) {
-      const rateToken = getRateToken(data.action);
-
-      if (rateToken) {
-        payload.rateToken = rateToken;
-      }
-    }
 
 
     Object.keys(payload)
@@ -968,6 +888,145 @@ function postToAppsScript(data) {
         "QR se nepodařilo vytvořit.";
 
       console.error(error);
+    }
+  }
+
+
+  // ============================================================
+  // PŘÍMÝ TISK NIIMBOT B21S – KULATÝ ŠTÍTEK 21 mm
+  //
+  // B21S je 203 dpi. 21 mm odpovídá přibližně 168 bodům.
+  // QR zůstává čtvercový – je uprostřed kulatého štítku.
+  // Kód voucheru je malým písmem pod QR.
+  // ============================================================
+
+  const NIIMBOT_B21S_MODEL = {
+    name_prefixes: ["B21"],
+    task: "b1",
+    density: 3,
+    label_type: 1,
+    speed: 1
+  };
+
+  const NIIMBOT_B21S_SIZE = {
+    w_px: 168,
+    h_px: 168,
+    offset_y_px: 0,
+    dpi: 203
+  };
+
+
+  function createNiimbotLabelDataUrl(code) {
+
+    return new Promise(function(resolve, reject) {
+
+      try {
+
+        const qr = qrcode(0, "M");
+        qr.addData(String(code));
+        qr.make();
+
+        const qrDataUrl = qr.createDataURL(4, 0);
+        const qrImage = new Image();
+
+        qrImage.onload = function() {
+
+          const canvas = document.createElement("canvas");
+          canvas.width = NIIMBOT_B21S_SIZE.w_px;
+          canvas.height = NIIMBOT_B21S_SIZE.h_px;
+
+          const ctx = canvas.getContext("2d");
+
+          // Bílé pozadí.
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // QR – přibližně 132 × 132 px, uprostřed.
+          const qrSize = 132;
+          const qrX = Math.round((168 - qrSize) / 2);
+          const qrY = 5;
+
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
+          // Kód voucheru pod QR.
+          ctx.fillStyle = "#000000";
+          ctx.font = "bold 9px Arial, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(code), 84, 153);
+
+          resolve(canvas.toDataURL("image/png"));
+        };
+
+        qrImage.onerror = function() {
+          reject(new Error("QR obrázek se nepodařilo připravit."));
+        };
+
+        qrImage.src = qrDataUrl;
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+
+  async function printNiimbotLabel() {
+
+    const messageId = "niimbotMessage";
+    const code =
+      document.getElementById("resultCode").textContent.trim();
+
+    if (!code) {
+      showMessage(messageId, "Nejdřív vytvořte voucher.", "error");
+      return;
+    }
+
+    if (!window.Niimbot || !Niimbot.isSupported()) {
+      showMessage(
+        messageId,
+        "Přímý tisk vyžaduje Chrome nebo Edge. Firefox Web Bluetooth nepodporuje.",
+        "error"
+      );
+      return;
+    }
+
+    showMessage(
+      messageId,
+      "Připravuji štítek a připojuji NIIMBOT…",
+      "ok"
+    );
+
+    try {
+
+      const labelUrl =
+        await createNiimbotLabelDataUrl(code);
+
+      await Niimbot.printImage(labelUrl, {
+        model: NIIMBOT_B21S_MODEL,
+        size: NIIMBOT_B21S_SIZE,
+        copies: 1,
+        onProgress: function(status) {
+          showMessage(messageId, "Tisk: " + status, "ok");
+        }
+      });
+
+      showMessage(
+        messageId,
+        "Štítek byl odeslán do NIIMBOT B21S.",
+        "ok"
+      );
+
+    } catch (error) {
+
+      console.error("NIIMBOT tisk:", error);
+
+      showMessage(
+        messageId,
+        "Tisk se nepodařil: " + (error.message || error),
+        "error"
+      );
     }
   }
 

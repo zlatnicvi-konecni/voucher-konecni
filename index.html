@@ -179,6 +179,40 @@
       line-height: 1.5;
     }
 
+    .device-gate {
+      display: none;
+    }
+
+    .device-gate.visible {
+      display: block;
+    }
+
+    .app-content {
+      display: none;
+    }
+
+    .app-content.visible {
+      display: block;
+    }
+
+    .device-status {
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .device-status strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+
+    .device-small {
+      margin-top: 10px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
     .camera-box {
       display: none;
       margin-top: 15px;
@@ -243,6 +277,43 @@
   </div>
 
   <div class="container">
+
+    <!-- ========================================================= -->
+    <!-- AUTORIZACE ZAŘÍZENÍ -->
+    <!-- ========================================================= -->
+
+    <div id="deviceGate" class="card device-gate visible no-print">
+      <h2>🔐 Autorizace zařízení</h2>
+
+      <div id="deviceGateStatus" class="device-status">
+        Ověřuji toto zařízení…
+      </div>
+
+      <div id="deviceRegistrationForm" style="display:none;">
+        <label for="registrationKey">Jednorázový klíč</label>
+        <input
+          id="registrationKey"
+          type="text"
+          autocomplete="one-time-code"
+          spellcheck="false"
+          autocapitalize="none"
+          placeholder="Vložte klíč ze správce"
+        >
+
+        <button class="gold" onclick="registerDevice()">
+          AUTORIZOVAT TOTO ZAŘÍZENÍ
+        </button>
+
+        <div id="deviceRegistrationMessage" class="message"></div>
+
+        <div class="device-small">
+          Jednorázový klíč je platný pouze 30 sekund a po úspěšné registraci se okamžitě zneplatní.
+          Po autorizaci se zařízení uloží jako známé a při další práci už tento klíč nepotřebujete.
+        </div>
+      </div>
+    </div>
+
+    <div id="appContent" class="app-content">
 
     <!-- ========================================================= -->
     <!-- VYTVOŘENÍ VOUCHERU -->
@@ -490,7 +561,10 @@
       <div class="security-note">
         Voucherový kód ani PIN nejsou uložené v této webové stránce.
         Ověření a změny stavu provádí Google Apps Script.
+        Citlivé operace jsou povolené pouze z autorizovaného zařízení.
       </div>
+
+    </div>
 
     </div>
 
@@ -516,6 +590,154 @@
 
   const GITHUB_ORIGIN =
     "https://zlatnicvi-konecni.github.io";
+
+  // API i tato stránka musí běžet pouze přes HTTPS.
+  if (location.protocol !== "https:") {
+    throw new Error("Aplikace musí být otevřena přes HTTPS.");
+  }
+
+  if (!API_URL.startsWith("https://")) {
+    throw new Error("API_URL must use HTTPS");
+  }
+
+
+  // ============================================================
+  // AUTORIZACE ZAŘÍZENÍ
+  // ============================================================
+
+  const DEVICE_STORAGE_KEY = "zlatnickaDilna_deviceAuth_v1";
+
+  function getStoredDeviceAuth() {
+    try {
+      const raw = localStorage.getItem(DEVICE_STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || !data.deviceId || !data.deviceToken) return null;
+
+      return {
+        deviceId: String(data.deviceId),
+        deviceToken: String(data.deviceToken)
+      };
+    } catch (error) {
+      console.error("Načtení autorizace zařízení:", error);
+      return null;
+    }
+  }
+
+  function saveDeviceAuth(data) {
+    if (!data || !data.deviceId || !data.deviceToken) {
+      throw new Error("Server neposkytl platné údaje zařízení.");
+    }
+    const auth = {
+      deviceId: String(data.deviceId),
+      deviceToken: String(data.deviceToken)
+    };
+    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(auth));
+    return auth;
+  }
+
+  function clearDeviceAuth() {
+    try {
+      localStorage.removeItem(DEVICE_STORAGE_KEY);
+    } catch (error) {
+      console.error("Smazání autorizace zařízení:", error);
+    }
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = String(value == null ? "" : value);
+    return div.innerHTML;
+  }
+
+  function showDeviceGateForRegistration(message) {
+    const gate = document.getElementById("deviceGate");
+    const status = document.getElementById("deviceGateStatus");
+    const form = document.getElementById("deviceRegistrationForm");
+    gate.classList.add("visible");
+    document.getElementById("appContent").classList.remove("visible");
+    status.innerHTML =
+      "🔒 <strong>Toto zařízení není autorizované.</strong>" +
+      (message ? "<div class=\"device-small\">" + escapeHtml(message) + "</div>" : "");
+    form.style.display = "block";
+  }
+
+  function showAuthorizedDevice(auth) {
+    const gate = document.getElementById("deviceGate");
+    const status = document.getElementById("deviceGateStatus");
+    status.innerHTML =
+      "✅ <strong>Zařízení je autorizované.</strong>" +
+      (auth && auth.deviceName ? "<div class=\"device-small\">" + escapeHtml(auth.deviceName) + "</div>" : "");
+    gate.classList.remove("visible");
+    document.getElementById("appContent").classList.add("visible");
+  }
+
+  function showDeviceChecking() {
+    document.getElementById("deviceGate").classList.add("visible");
+    document.getElementById("appContent").classList.remove("visible");
+    document.getElementById("deviceGateStatus").innerHTML = "Ověřuji toto zařízení…";
+    document.getElementById("deviceRegistrationForm").style.display = "none";
+  }
+
+  async function checkDeviceAuthorization() {
+    const stored = getStoredDeviceAuth();
+    if (!stored) {
+      showDeviceGateForRegistration();
+      return false;
+    }
+    showDeviceChecking();
+    try {
+      const result = await postToAppsScript({
+        action: "device-status",
+        deviceId: stored.deviceId,
+        deviceToken: stored.deviceToken
+      }, false);
+      if (result && result.ok && result.authorized) {
+        showAuthorizedDevice(result);
+        return true;
+      }
+      clearDeviceAuth();
+      showDeviceGateForRegistration(
+        result && result.message ? result.message : "Požádejte správce o nové autorizování zařízení."
+      );
+      return false;
+    } catch (error) {
+      showDeviceGateForRegistration(
+        "Nepodařilo se ověřit zařízení. Zkontrolujte připojení k internetu a zkuste to znovu."
+      );
+      return false;
+    }
+  }
+
+  async function registerDevice() {
+    const keyInput = document.getElementById("registrationKey");
+    const key = String(keyInput.value || "").trim();
+    clearMessage("deviceRegistrationMessage");
+    if (!key) {
+      showMessage("deviceRegistrationMessage", "Zadejte jednorázový klíč.", "error");
+      return;
+    }
+    showMessage("deviceRegistrationMessage", "Ověřuji jednorázový klíč…", "ok");
+    try {
+      const result = await postToAppsScript({
+        action: "register-device",
+        registrationKey: key
+      }, true);
+      if (!result || !result.ok) {
+        showMessage(
+          "deviceRegistrationMessage",
+          result && result.message ? result.message : "Zařízení se nepodařilo autorizovat.",
+          "error"
+        );
+        return;
+      }
+      saveDeviceAuth(result);
+      keyInput.value = "";
+      showAuthorizedDevice({ deviceName: result.deviceName });
+    } catch (error) {
+      showMessage("deviceRegistrationMessage", "Chyba komunikace: " + error.message, "error");
+    }
+  }
 
 
   // ============================================================
@@ -564,134 +786,63 @@
     );
   }
 
-function postToAppsScript(data) {
+function postToAppsScript(data, allowUnauthenticated) {
 
   return new Promise(function(resolve, reject) {
-
     const requestId = makeRequestId();
-
-    const iframe =
-      document.getElementById("apiFrame");
-
+    const iframe = document.getElementById("apiFrame");
     let form = null;
     let timeout = null;
 
-
     function cleanup() {
-
-      window.removeEventListener(
-        "message",
-        receive
-      );
-
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-
-      if (
-        form &&
-        form.parentNode
-      ) {
-        form.remove();
-      }
+      window.removeEventListener("message", receive);
+      if (timeout) clearTimeout(timeout);
+      if (form && form.parentNode) form.remove();
     }
 
-
     function receive(event) {
-
       const response = event.data;
-
-      if (
-        !response ||
-        response.type !== "voucher-api" ||
-        response.requestId !== requestId
-      ) {
-        return;
-      }
-
+      if (!response || response.type !== "voucher-api" || response.requestId !== requestId) return;
       cleanup();
-
       resolve(response.result);
     }
 
+    window.addEventListener("message", receive);
 
-    window.addEventListener(
-      "message",
-      receive
-    );
+    form = document.createElement("form");
+    form.method = "POST";
+    form.action = API_URL;
+    form.target = iframe.name;
+    form.style.display = "none";
 
+    const payload = { ...data, requestId: requestId };
 
-    form =
-      document.createElement(
-        "form"
-      );
+    if (!allowUnauthenticated) {
+      const deviceAuth = getStoredDeviceAuth();
+      if (!deviceAuth) {
+        cleanup();
+        reject(new Error("Toto zařízení není autorizované."));
+        return;
+      }
+      payload.deviceId = deviceAuth.deviceId;
+      payload.deviceToken = deviceAuth.deviceToken;
+    }
 
-    form.method =
-      "POST";
+    Object.keys(payload).forEach(function(key) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = payload[key] == null ? "" : payload[key];
+      form.appendChild(input);
+    });
 
-    form.action =
-      API_URL;
-
-    form.target =
-      iframe.name;
-
-    form.style.display =
-      "none";
-
-
-    const payload = {
-      ...data,
-      requestId:
-        requestId
-    };
-
-
-    Object.keys(payload)
-      .forEach(function(key) {
-
-        const input =
-          document.createElement(
-            "input"
-          );
-
-        input.type =
-          "hidden";
-
-        input.name =
-          key;
-
-        input.value =
-          payload[key] == null
-            ? ""
-            : payload[key];
-
-        form.appendChild(
-          input
-        );
-      });
-
-
-    document.body.appendChild(
-      form
-    );
-
-
+    document.body.appendChild(form);
     form.submit();
 
-
-    timeout =
-      setTimeout(function() {
-
-        cleanup();
-
-        reject(
-          new Error(
-            "Server neodpověděl."
-          )
-        );
-
-      }, 30000);
-
+    timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error("Server neodpověděl."));
+    }, 30000);
   });
 }
 
@@ -830,8 +981,7 @@ function postToAppsScript(data) {
 
       showMessage(
         "createMessage",
-        "Chyba komunikace: " +
-          error.message,
+        "Chyba komunikace se serverem. Zkuste to znovu.",
         "error"
       );
     }
@@ -1175,8 +1325,7 @@ function postToAppsScript(data) {
 
       showMessage(
         "lookupMessage",
-        "Chyba komunikace: " +
-          error.message,
+        "Chyba komunikace se serverem. Zkuste to znovu.",
         "error"
       );
     }
@@ -1315,8 +1464,7 @@ function postToAppsScript(data) {
 
       showMessage(
         "redeemMessage",
-        "Chyba komunikace: " +
-          error.message,
+        "Chyba komunikace se serverem. Zkuste to znovu.",
         "error"
       );
     }
@@ -1499,10 +1647,18 @@ function postToAppsScript(data) {
 
 
   // ============================================================
+  // START AUTORIZACE ZAŘÍZENÍ
+  // ============================================================
+
+  document.addEventListener("DOMContentLoaded", function() {
+    checkDeviceAuthorization();
+  });
+
+
+  // ============================================================
   // AUTOMATICKÉ NAČTENÍ KÓDU Z URL
   //
-  // ZATÍM VYPNUTO:
-  // nechceme posílat voucherový kód v URL GitHub stránky.
+  // Vypnuto: voucherový kód se z URL GitHub stránky automaticky nenačítá.
   // ============================================================
 
 </script>

@@ -315,6 +315,40 @@
 
     <div id="appContent" class="app-content">
 
+    <section id="onlineVouchers" class="card no-print" hidden aria-labelledby="onlineTitle">
+      <h2 id="onlineTitle">Online poukazy — testovací návrh</h2>
+      <p>Nepropojeno. Používejte pouze smyšlené testovací údaje. Tento formulář
+        nevystavuje poukaz, neověřuje platbu ani PIN a nevytváří PDF.</p>
+      <form id="onlineVoucherForm" autocomplete="off">
+        <fieldset id="onlineFields" disabled>
+          <legend>Bankovní převod — ruční potvrzení obsluhou</legend>
+          <label for="onlineOrder">Wix order ID</label>
+          <input id="onlineOrder" required maxlength="100">
+          <label for="onlineLine">Wix line item ID</label>
+          <input id="onlineLine" required maxlength="100">
+          <label for="onlineUnit">Pořadí kusu v položce</label>
+          <input id="onlineUnit" type="number" min="1" step="1" value="1" required>
+          <label for="onlineAmount">Nominální hodnota (Kč)</label>
+          <input id="onlineAmount" type="number" min="1" step="1" required>
+          <label for="onlineEmail">Testovací e-mail zákazníka</label>
+          <input id="onlineEmail" type="email" required maxlength="254">
+          <label for="onlineIssuer">Vystavující osoba</label>
+          <input id="onlineIssuer" required maxlength="100">
+          <label for="onlinePin">Testovací PIN (nebude ověřen)</label>
+          <input id="onlinePin" type="password" required maxlength="32" autocomplete="off">
+          <label><input id="onlinePaid" type="checkbox" required>
+            Potvrzuji kontrolu přijetí celé bankovní platby.</label>
+          <button type="submit">Zkontrolovat testovací údaje</button>
+          <button type="button" disabled>Vystavit — backend nepřipojen</button>
+          <button type="button" disabled>Otevřít PDF — nedostupné</button>
+          <button type="button" disabled>Označit odesláno — nedostupné</button>
+          <button type="reset" class="secondary">Vymazat údaje</button>
+        </fieldset>
+      </form>
+      <p id="onlineMessage" role="status" aria-live="polite"></p>
+    </section>
+
+
     <!-- ========================================================= -->
     <!-- VYTVOŘENÍ VOUCHERU -->
     <!-- ========================================================= -->
@@ -654,6 +688,7 @@
     const gate = document.getElementById("deviceGate");
     const status = document.getElementById("deviceGateStatus");
     const form = document.getElementById("deviceRegistrationForm");
+    window.onlineVoucherMock?.setAuthorized(false);
     gate.classList.add("visible");
     document.getElementById("appContent").classList.remove("visible");
     status.innerHTML =
@@ -663,6 +698,7 @@
   }
 
   function showAuthorizedDevice(auth) {
+    window.onlineVoucherMock?.setAuthorized(true);
     const gate = document.getElementById("deviceGate");
     const status = document.getElementById("deviceGateStatus");
     status.innerHTML =
@@ -673,6 +709,7 @@
   }
 
   function showDeviceChecking() {
+    window.onlineVoucherMock?.setAuthorized(false);
     document.getElementById("deviceGate").classList.add("visible");
     document.getElementById("appContent").classList.remove("visible");
     document.getElementById("deviceGateStatus").innerHTML = "Ověřuji toto zařízení…";
@@ -1662,6 +1699,8 @@ function postToAppsScript(data, allowUnauthenticated) {
   // ============================================================
 
 </script>
+
+<script src="online-vouchers.js"></script>
 
 </body>
 </html>

@@ -88,3 +88,27 @@ s dodaným odděleným backendem.
 Rollback: odstranit nový section, tři volání `onlineVoucherMock` a script tag
 z `index.html`, odstranit nový JS a dokumenty/testy; nejsou žádné změny dat,
 backendu ani vzdálené konfigurace. Po commitu použít revert příslušného commitu.
+
+## Opravy po kontrole Draft PR #1 (P2 / P3)
+
+`postToAppsScript` nyní před kontrolou obálky a request ID ověřuje současně
+`event.origin` a `event.source`. Povolené jsou pouze HTTPS původy
+`script.google.com`, `script.googleusercontent.com` a sandboxové hosty
+`*-script.googleusercontent.com` (celý přesně ukotvený hostname, žádný port,
+HTTP, opaque `null` ani libovolná subdoména googleusercontent.com).
+Zdroj musí být aktuální `apiFrame.contentWindow` nebo jeho skutečné vnořené
+okno. Pro HtmlService sandbox se kontroluje strom WindowProxy bez čtení
+cross-origin DOM, nejvýše do hloubky 3 a 8 oken na úroveň; neověřitelné zdroje
+se odmítají. Samotná shoda Google původu nebo request ID nikdy nestačí.
+Payload, formulářový POST, autentizační údaje, časový limit i formát odpovědi
+zůstávají stejné. Kontrola se nesmí při problémech obcházet wildcardem či
+přijetím `null` origin. Backend není dostupný: konkrétní nasazený HtmlService
+obal je nutné později ověřit v odděleném testovacím deploymentu. Pokud by
+používal jiný původ či hlubší strukturu, odpověď bude bezpečně odmítnuta.
+
+Mock formulář maže výsledek při `input`, `change`, resetu a také při zachycení
+`invalid`, protože nativní HTML validace může zablokovat událost `submit`.
+
+Rollback těchto oprav: revert samostatného opravného commitu. To by ale znovu
+otevřelo P2; před takovým návratem zablokovat používání API klienta. Žádná
+migrace tabulek ani změna serverové konfigurace nebyla provedena.

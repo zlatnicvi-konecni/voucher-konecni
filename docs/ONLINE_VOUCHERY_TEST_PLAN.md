@@ -48,3 +48,36 @@ a absenci veřejných QR služeb. Automatická emise musí zůstat vypnutá.
 Každý nález: verze/commit, předpoklady, kroky, očekávání, skutečnost, dopad,
 bezpečný důkaz bez tajemství. Vrátit vývojovému agentovi, po opravě zopakovat.
 Tento plán ani lokální VM test nejsou nezávislý Codex Code Review.
+
+## Regrese oprav P2 / P3 v PR #1
+
+Spustit navíc `node tests/voucher-regression.browser.cjs`. Test používá pouze
+smyšlené údaje a odpovědi přes Playwright route; skutečný backend ani tabulky
+nepoužívá. Prohlížeč má navíc proxy na uzavřeném loopback portu, takže ani
+nezachycený požadavek nemůže odejít ven. Přechod z Apps Script URL na
+Googleusercontent se simuluje klientskou navigací (WindowProxy se zachová),
+nikoli skutečným Google HTTP přesměrováním: Playwright neinterceptuje další
+HTTP redirect hops. Test nepředstírá ověření reálného deploymentu.
+
+Ověřeno v Chromiu:
+- Správný request ID z cizího iframe včetně stejného Google sandbox původu
+  neodemkne autorizaci. Odmítají se také chybný původ při správném source,
+  `null`, HTTP, podvržené suffixy/domény, chybějící source a chybná obálka/ID.
+- Legitimní odpověď ze skutečného vnořeného sandboxu odemkne UI;
+  přímá odpověď po navigaci na script.googleusercontent.com také projde.
+  Samostatně je ověřen přímý script.google.com původ.
+- Registrace zachová payload bez device tokenu; další operace přidávají
+  autorizaci. Create zachová částku/PIN a předá pouze kód do QR; lookup,
+  redeem 500 + 1000 Kč a následný nulový zůstatek fungují s in-memory fixture.
+  Chybný PIN serverová fixture odmítne, chybějící PIN ani neautorizované
+  zařízení neodesílají požadavek.
+- Scanner předá normalizovaný kód do lookup. NIIMBOT dostane volání se
+  zachovanou velikostí 240 × 160 px / 203 dpi, jednou kopií a kódem voucheru.
+  QR knihovna, kamera, rasterizace štítku i Bluetooth jsou testovací doubles;
+  čitelnost QR a fyzický tisk tím ověřeny nejsou.
+- `tests/online-vouchers.browser.cjs` ověřuje P3 po úpravě částky, checkboxu,
+  opakovaném potvrzení s vymazaným PIN a programově zneplatněném e-mailu.
+  Nativní `invalid` vymaže starý úspěch, i když vůbec nenastane `submit`.
+
+Žádný reálný voucher nebyl vytvořen ani uplatněn. Integrace se skutečným
+backendem a periferiemi zůstává samostatnou přejímkou v testovacím prostředí.

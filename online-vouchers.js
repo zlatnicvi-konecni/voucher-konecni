@@ -17,7 +17,12 @@
     }
   }
 
-  form.addEventListener('reset', () => { message.textContent = ''; });
+  const clearMessage = () => { message.textContent = ''; };
+  form.addEventListener('reset', clearMessage);
+  form.addEventListener('input', clearMessage);
+  form.addEventListener('change', clearMessage);
+  // Native constraint validation can prevent submit entirely; invalid does not bubble.
+  form.addEventListener('invalid', clearMessage, true);
   form.addEventListener('submit', event => {
     event.preventDefault();
     message.textContent = '';

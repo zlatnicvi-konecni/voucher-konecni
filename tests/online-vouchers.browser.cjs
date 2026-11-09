@@ -30,6 +30,26 @@ const assert = require('node:assert/strict');
     await page.locator('#onlineVoucherForm button[type=submit]').click();
     assert.match(await page.locator('#onlineMessage').textContent(), /poukaz nebyl vydán/);
     assert.equal(await page.locator('#onlinePin').inputValue(), '');
+    await page.locator('#onlineAmount').fill('3000');
+    assert.equal(await page.locator('#onlineMessage').textContent(), '');
+    await page.locator('#onlinePin').fill('dummy');
+    await page.locator('#onlineVoucherForm button[type=submit]').click();
+    assert.match(await page.locator('#onlineMessage').textContent(), /Lokální kontrola/);
+    // PIN was cleared by success. Native invalid fires without a submit event.
+    await page.locator('#onlineVoucherForm button[type=submit]').click();
+    assert.equal(await page.locator('#onlineMessage').textContent(), '');
+    await page.locator('#onlinePin').fill('dummy');
+    await page.locator('#onlineVoucherForm button[type=submit]').click();
+    await page.locator('#onlinePaid').uncheck();
+    assert.equal(await page.locator('#onlineMessage').textContent(), '');
+    await page.locator('#onlinePaid').check();
+    await page.locator('#onlinePin').fill('dummy');
+    await page.locator('#onlineVoucherForm button[type=submit]').click();
+    await page.evaluate(() => {
+      document.getElementById('onlineEmail').value = 'invalid';
+      document.getElementById('onlineVoucherForm').requestSubmit();
+    });
+    assert.equal(await page.locator('#onlineMessage').textContent(), '');
     await page.evaluate(() => showDeviceGateForRegistration());
     assert.equal(await page.locator('#onlineEmail').inputValue(), '');
     assert.equal(await page.locator('#onlineVouchers').isVisible(), false);

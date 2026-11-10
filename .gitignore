@@ -1,0 +1,10 @@
+# Private originals and generated voucher artifacts must never enter this public repo.
+node_modules/
+work/
+private/
+*.pdf
+*.PDF
+*.zip
+*.sqlite
+*.sqlite-*
+**/var/cache/fontconfig/

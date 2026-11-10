@@ -41,8 +41,10 @@ soukromé. V testu PDF je jeden dřívější volitelný single-original test vy
 pokud nejsou nastavené jeho env proměnné; nový all-original test ověřuje všechny
 3 soukromé originály v jednom průchodu.
 
-Po aktualizaci následuje samostatná kontrola testovacím agentem na přesném
-commitu. Její závěry a případné opravy budou zaznamenané před závěrečným předáním.
+Samostatná kontrola testovacím agentem proběhla na dec728a a po opravě P2
+byla zopakována na 46a93b7. OFFLINE etapa prošla bez dalších blokujících
+nálezů v prověřeném rozsahu; report je `docs/PR3_INDEPENDENT_REVIEW.md`.
+Výsledek není souhlas s merge, deploy ani živým přepnutím Wixu.
 
 ## Oprava nálezu z nezávislého opakování
 

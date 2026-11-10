@@ -118,3 +118,16 @@ test('calibration is explicitly invalid and cannot take a registry code or appro
   assert.equal(pdf.getTitle(), 'NEPLATNY TEST / kalibrace predlohy');
   await assert.rejects(renderTestVoucherPdf({ record, templateBytes: bytes, approvedTemplate: proposedTemplate }), /LAYOUT_NOT_APPROVED/);
 });
+
+test('text fit uses rendered glyph advances, so kerning cannot hide an overflow', async () => {
+  const bytes = await fixture();
+  const config = options(bytes);
+  config.record = { ...record, amount: 10000, code: 'TEST-NEPLATNY-10000' };
+  config.approvedTemplate.amount = 10000;
+  config.approvedTemplate.layout.code.width = 35;
+  // Kerning estimate is 34.55 mm, actual plain-Tj advances are 35.82 mm at 9 pt.
+  await assert.rejects(renderTestVoucherPdf(config), /TEXT_WOULD_OVERFLOW/);
+  config.approvedTemplate.layout.code.fontSizePt = 8.5;
+  const result = await renderTestVoucherPdf(config);
+  assert.equal((await PDFDocument.load(result)).getPageCount(), 2);
+});

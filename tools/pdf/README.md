@@ -12,10 +12,13 @@ nikoli tvrzení o neviděném schématu stávajícího Apps Scriptu.
 | --- | --- |
 | `3000_darkovy poukaz_edit1.pdf` | Převzata soukromou přílohou, ověřeny 2 strany 170 × 120 mm |
 | `5000_darkovy poukaz_edit1.pdf` | Dosud chybí |
-| `10000_darkovy poukaz_edit.pdf` | Dosud chybí |
+| `10000_darkovy poukaz_edit.pdf` | Převzata soukromou přílohou, ověřeny 2 strany 170 × 120 mm |
 
-U 3k byl ověřen MediaBox/CropBox/TrimBox bez rotace. Vstupní SHA-256:
-`6899fdebd0f0f027509ffe00e7af37ec91fcfd0dbcd71674ed8cd081663f177d`.
+U 3k i 10k byl ověřen MediaBox/CropBox/TrimBox bez rotace. Vstupní SHA-256:
+
+- 3k: `6899fdebd0f0f027509ffe00e7af37ec91fcfd0dbcd71674ed8cd081663f177d`
+- 10k: `414390e665b0de0a1c77dc1dcd1821419de761ce249ec2788e258e92c2c9ba2d`
+
 Originály, náhledy, soukromé manifesty ani skutečné kódy se NEukládají do tohoto
 veřejného repozitáře. `.gitignore` ignoruje PDF, private/, work/ a node_modules.
 
@@ -65,18 +68,28 @@ CLI nikdy nepřepíše existující soubor a ukládá výstup s právy 0600. Nev
 platný kód do CLI argumentů. Souřadnice manifestu jsou milimetry od levého
 DOLNÍHO rohu, strana 2, fonty v bodech. SHA a částka náleží stejnému originálu.
 
-Návrh souřadnic ZMĚŘENÝ pro přijatou 3k předlohu (není schválen tiskem):
+Návrh souřadnic ZMĚŘENÝ samostatně na přijatých 3k a 10k předlohách
+(není schválen fyzickým tiskem):
 
 | Prvek | x / y / šířka / výška mm | Font |
 | --- | --- | --- |
 | QR včetně bílé zóny | 21 / 21 / 18 / 18 | — |
-| Text kódu | 21 / 15 / 35 / 4,2 | 9 pt |
+| Text kódu 3k | 21 / 15 / 35 / 4,2 | 9 pt |
+| Text kódu 10k | 21 / 15 / 35 / 4,2 | 8,5 pt |
 | Platnost | 76 / 16 / 28 / 5 | 9 pt |
 
 Soukromý JSON má `amount`, `sha256`, `layout` s `page:2`,
 `units:"mm-bottom-left"`, `visualApproved:false`, `printApproved:false`
 a poli `qr`, `code`, `expiry` dle tabulky (`x,y,width,height,fontSizePt`).
-Tyto pozice NEpřenášet automaticky na 5k/10k bez převzetí a kontroly originálů.
+Tyto pozice NEpřenášet automaticky na 5k bez převzetí a kontroly originálu.
+10k má delší doprovodný text než 3k; vizuálně ověřeno, že QR/text do něj
+nezasahují. Zkušební 10k kód je delší, proto má samostatně navržených 8,5 pt.
+
+Při testu 10k nalezena a opravena chyba měření šířky: pdf-lib měří celý řetězec
+s kerningem, ale drawText emituje text bez kerningových posunů. Kontrola nyní
+sčítá skutečné šířky jednotlivých znaků. Např. delší vzorek v poli 35 mm při
+9 pt odmítne (nezkracuje ani automaticky nezmenšuje); při navržených 8,5 pt
+se vejde. Přidán regresní test a zopakováno porovnání skutečné 3k i 10k předlohy.
 
 ## Reprodukovatelné testy
 
@@ -93,9 +106,9 @@ Rasterizace: Poppler `pdftoppm`/`pdftotext`. Volitelný test originálu navíc
 vyžaduje Python s PyMuPDF a Pillow; porovnává skutečný vstup a výstup na 300 dpi.
 Nikde se nevolá veřejná QR služba ani backend evidence.
 
-Na skutečné 3k předloze PROŠLO: dvě strany, rozměry, první strana pixelově
+Na skutečných 3k a 10k předlohách samostatně PROŠLO: dvě strany, rozměry, první strana pixelově
 shodná, strana 2 mimo tři pole pixelově shodná, text + datum a dekódování QR
 odpovídají kalibračnímu vzorku. Fyzický tisk/sken z papíru, schválení pozic,
-5k/10k originály a kód+platnost ze skutečné testovací evidence ZATÍM NEOVĚŘENY.
+5k originál a kód+platnost ze skutečné testovací evidence ZATÍM NEOVĚŘENY.
 
 Rollback: revert commitu rendereru; neexistuje migrace, změna serveru ani dat.

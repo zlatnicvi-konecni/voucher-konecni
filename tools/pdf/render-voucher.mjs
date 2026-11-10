@@ -56,7 +56,10 @@ async function render({ record, templateBytes, approvedTemplate }, calibration =
   }
   const page = pdf.getPage(1), font = await pdf.embedFont(StandardFonts.Helvetica);
   for (const [box, value] of [[layout.code, text.code], [layout.expiry, text.expiry]]) {
-    if (font.widthOfTextAtSize(value, box.fontSizePt) > mm(box.width)) fail('TEXT_WOULD_OVERFLOW');
+    // pdf-lib's full-string metric applies kerning, but drawText emits plain Tj
+    // without kerning adjustments. Sum glyph advances to match actual PDF output.
+    const width = Array.from(value).reduce((sum, char) => sum + font.widthOfTextAtSize(char, box.fontSizePt), 0);
+    if (width > mm(box.width)) fail('TEXT_WOULD_OVERFLOW');
   }
   const qr = QRCode.create([{ data: text.code, mode: 'byte' }], { errorCorrectionLevel: 'M' });
   const moduleSize = layout.qr.width / (qr.modules.size + 8); // 4-module quiet zone each side

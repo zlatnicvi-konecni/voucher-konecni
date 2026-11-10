@@ -109,8 +109,8 @@ idempotentní klíč musí být ve stejném serverovém emisním registru. Pád 
 zápisy nesmí vést k nové emisi; neurčitý výsledek vyžaduje načtení/reconciliation.
 
 PDF až z téhož uloženého kódu, soukromé úložiště, bez automatického e-mailu.
-Požadované vstupy: 3k/5k/10k dvoustránkové grafiky 170×120 mm; zde nejsou
-k dispozici. Zadní strana dole vlevo pole Kód: QR + čitelný stejný kód;
+Požadované vstupy: dvoustránkové grafiky 170×120 mm; 3k i 10k jsou již
+soukromě převzaty a kalibračně otestovány, 5k stále chybí. Zadní strana dole vlevo pole Kód: QR + čitelný stejný kód;
 uprostřed dole platnost. Selhání PDF ponechá ISSUED; retry generuje PDF stejného
 voucheru. Platnost 24 měsíců je dosud pravidlo k potvrzení, ne serverový fakt.
 Online uplatnění přes Wix checkout není v této etapě implementované.
@@ -171,8 +171,14 @@ Finální zákaznická URL má zůstat `/darkovy-poukaz`; případná jiná cest
 jen izolovanému nepřipojenému testu. Předpoklad změnitelnosti nativní stránky
 musí potvrdit Wix Studio. Žádný nový odkaz/menu ani přepnutí na ostrém webu.
 
-PDF pipeline: viz `tools/pdf/README.md`. Originál 3k již převzat a na něm
-ověřen neplatný kalibrační výstup; 5k/10k stále nejsou k dispozici. Nikde
+PDF pipeline: viz `tools/pdf/README.md`. Originály 3k a 10k již převzaty a na
+každém samostatně ověřen neplatný kalibrační výstup; 5k stále není k dispozici. Nikde
 nebyl použit nebo vystaven reálný voucherový kód. Skutečná platnost se bude
 číst z evidence, ukázkové datum není nové obchodní pravidlo. PDF/fotografie
 ani soukromé kontrolní screenshoty se do veřejného PR nevkládají.
+
+U 10k prošla kontrola dvou stran, 170 × 120 mm, shody původních pixelů mimo
+doplněná pole při 300 dpi, přesného textu/data a dekódování QR. Současně
+opravena odhalená chyba odhadu šířky textu; přidána regrese pro delší kód
+a znovu ověřen skutečný originál 3k. Žádné původní PDF ani generovaný náhled
+se do veřejného PR nepřidává. Kontrolní fyzický tisk nadále čeká.

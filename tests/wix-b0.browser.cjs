@@ -9,16 +9,18 @@ const assert = require('node:assert/strict');
       const unexpected = [];
       await page.route('**/*', route => {
         const url = new URL(route.request().url());
+        if (url.href === 'https://static.wixstatic.com/media/3b66ad_f4ac0f05d5594d73a593a1977148ed69~mv2.png') return route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jVZkAAAAASUVORK5CYII=', 'base64') });
         const files = { '/': ['wix/preview/index.html', 'text/html'], '/preview.mjs': ['wix/preview/preview.mjs', 'text/javascript'], '/public/voucher-model.mjs': ['wix/public/voucher-model.mjs', 'text/javascript'] };
         const file = url.origin === 'https://preview.test' && files[url.pathname];
         if (file) return route.fulfill({ contentType: file[1], body: fs.readFileSync(file[0], 'utf8') });
         unexpected.push(url.origin); return route.abort();
       });
       await page.goto('https://preview.test');
+      assert.equal(await page.locator('#voucherPhoto').getAttribute('src'), 'https://static.wixstatic.com/media/3b66ad_f4ac0f05d5594d73a593a1977148ed69~mv2.png');
       await page.getByRole('link', { name: 'Koupit dárkový poukaz' }).click();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       for (const amount of ['3000', '5000', '10000']) {
-        await page.locator('#amount').selectOption(amount);
+        await page.locator('input[name="amount"][value="' + amount + '"]').check();
         for (const [id, value] of Object.entries({ recipientName: 'Test', recipientEmail: 'test@example.invalid', senderName: 'Test', message: '<script>invalid markup</script>' })) await page.locator('#' + id).fill(value);
         await page.locator('#privacy').check();
         await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();

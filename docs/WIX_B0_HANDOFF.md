@@ -39,7 +39,7 @@ Nebyl změněn živý web, košík, platební stav ani objednávka #10002.
 
 | ID | Wix prvek / konfigurace |
 | --- | --- |
-| voucherAmount | Dropdown, hodnoty řetězce 3000 / 5000 / 10000, default 3000 |
+| voucherAmount | RadioButtonGroup, hodnoty řetězce 3000 / 5000 / 10000, default 3000 |
 | recipientName | Text input, povinné, max 100, viditelný label |
 | recipientEmail | Email input, povinné, max 254, viditelný label |
 | senderName | Text input, povinné, max 100 |
@@ -141,3 +141,38 @@ nezávislý review. Nový agent nebyl založen. Po review a všech přejímkách
 žádat majitele o souhlas s přepnutím; současný horní odkaz zůstává nezměněný.
 Rollback B0: revert PR commitu, žádná datová migrace. Budoucí přepnutí musí mít
 uložený původní cíl tlačítka; historické Wix karty a původní stránku nemažeme.
+
+
+## Závazné upřesnění originálů a vzhledu (Issue #2, doplnění 10. 11. 2026)
+
+Předchozí barevná ilustrace náhledu nebyla schválená a byla odstraněna. Náhled
+nyní odkazuje na PŘESNÝ původní asset fotografie z veřejné Wix stránky:
+`https://static.wixstatic.com/media/3b66ad_f4ac0f05d5594d73a593a1977148ed69~mv2.png`.
+Byl vizuálně ověřen na čtecím snímku stránky (bílý voucher, růžové květiny,
+zlaté hrany). Soubor fotografie nebyl přidán do veřejného repozitáře. Obrázek
+z obecné og:image metadata stránky byl prověřen a NENÍ fotografií voucheru;
+nesmí se použít jako náhrada. Native Wix stránka převezme tento existující
+Media Manager asset a původní crop/rozměry; nemá vytvářet nový obrázek.
+
+V náhledu bílé pozadí, skutečný název, malé nominálové volby a omezení uplatnění
+pouze v kamenné prodejně. To pořád není potvrzená vizuální kopie. Původní header,
+logo, login/košík, footer, přesné theme fonty/rozměry a všechny dynamické části
+formuláře musí zůstat ve Wix rámu. Před přepnutím musí proběhnout srovnání
+s celým aktuálním formulářem a screenshoty desktop/mobil.
+
+Čtecí browser kontrola nepovolovala žádný POST ani nákupní akci. V tomto
+omezeném režimu byly vidět nominály, Množství (1–10) a Koupit, ale nebyla
+zpřístupněna celá dynamická část. Podle reference majitele je nutné doplnit
+přepínač Pro někoho jiného / Pro mě, původní popis se Zjistit více a všechna
+navazující pole. B0 model nyní pracuje s jedním kusem a pevným příjemcem;
+nejde o hotovou náhradu tohoto formuláře. Neodvozovat chybějící pole z domněnek.
+
+Finální zákaznická URL má zůstat `/darkovy-poukaz`; případná jiná cesta slouží
+jen izolovanému nepřipojenému testu. Předpoklad změnitelnosti nativní stránky
+musí potvrdit Wix Studio. Žádný nový odkaz/menu ani přepnutí na ostrém webu.
+
+PDF pipeline: viz `tools/pdf/README.md`. Originál 3k již převzat a na něm
+ověřen neplatný kalibrační výstup; 5k/10k stále nejsou k dispozici. Nikde
+nebyl použit nebo vystaven reálný voucherový kód. Skutečná platnost se bude
+číst z evidence, ukázkové datum není nové obchodní pravidlo. PDF/fotografie
+ani soukromé kontrolní screenshoty se do veřejného PR nevkládají.

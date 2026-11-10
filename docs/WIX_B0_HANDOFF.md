@@ -40,10 +40,13 @@ Nebyl změněn živý web, košík, platební stav ani objednávka #10002.
 | ID | Wix prvek / konfigurace |
 | --- | --- |
 | voucherAmount | RadioButtonGroup, hodnoty řetězce 3000 / 5000 / 10000, default 3000 |
-| recipientName | Text input, povinné, max 100, viditelný label |
-| recipientEmail | Email input, povinné, max 254, viditelný label |
-| senderName | Text input, povinné, max 100 |
-| giftMessage | Text box, volitelné, max 500 |
+| voucherQuantity | Number input, celé číslo 1–10, default 1 |
+| quantityMinus / quantityPlus | Buttons − / + s přístupnými popisky Snížit/Zvýšit množství |
+| voucherPrice | Text pro aktuální jednotkovou cenu |
+| recipientType | RadioButtonGroup other / self, default other |
+| recipientFields | Collapsible container pro e-mail a jméno příjemce |
+| recipientName | Text input, nepovinné podle reference, max 100, viditelný label |
+| recipientEmail | Email input, povinné pro other, max 254, viditelný label |
 | privacyAcknowledged | Checkbox a stávající právní odkaz webu; text schválit |
 | continueCheckout | Button „Pokračovat do pokladny“ |
 | voucherStatus | Text s přístupným live status oznámením nastaveným v Editoru |
@@ -164,8 +167,8 @@ s celým aktuálním formulářem a screenshoty desktop/mobil.
 omezeném režimu byly vidět nominály, Množství (1–10) a Koupit, ale nebyla
 zpřístupněna celá dynamická část. Podle reference majitele je nutné doplnit
 přepínač Pro někoho jiného / Pro mě, původní popis se Zjistit více a všechna
-navazující pole. B0 model nyní pracuje s jedním kusem a pevným příjemcem;
-nejde o hotovou náhradu tohoto formuláře. Neodvozovat chybějící pole z domněnek.
+navazující pole. B0 model již podle dodané reference podporuje 1–10 kusů a volbu příjemce,
+ale stále nejde o hotovou náhradu celého původního formuláře. Neodvozovat chybějící pole z domněnek.
 
 Finální zákaznická URL má zůstat `/darkovy-poukaz`; případná jiná cesta slouží
 jen izolovanému nepřipojenému testu. Předpoklad změnitelnosti nativní stránky
@@ -188,3 +191,38 @@ pole. Celá sada 6 PDF testů včetně soukromého 5k originálu prošla: první
 strana a zadní strana mimo doplnění beze změn, přesný vytištěný i dekódovaný
 zkušební kód a ukázkové datum. Tím je převzetí všech tří předloh dokončeno;
 nejde o schválení fyzického tisku, integrace ani ostrého nasazení.
+
+
+## Zapracování snímku od majitele
+
+Viditelná část snímku je nová závazná reference. Náhled upraven na bílé pozadí,
+stejnou původní fotografii, dvousloupcový obsah, menší patkový nadpis, popis a
+Zjistit více, malé nominály, Množství a Pro někoho jiného / Pro mě. Pod nimi je
+povinný e-mail a nepovinné jméno v pořadí ze snímku. Chování rozbaleného popisu
+ani Pro mě na snímku není vidět: lokální chování je návrh k přejímce, ne důkaz
+shody s původním widgetem. Úplný popis se musí převzít z Wixu, nevymýšlet jej.
+
+Původní povinné pole odesílatele z mocku odstraněno z UI; nebylo podloženo
+snímkem. Optional senderName/message zůstávají jen jako návrhová metadata ve
+sdíleném modelu; nejsou vyžadovány. Spodní část formuláře za jménem příjemce
+není na snímku doložená. Consent a testovací CTA jsou v náhledu označené jako
+prozatímní. Login/košík/logo/footer jsou v lokálním náhledu jen zástupné;
+ve Wixu zůstávají skutečné sdílené komponenty. Snímek s osobními prvky
+prohlížeče není součástí veřejného repozitáře. Pixelová shoda se netvrdí.
+
+Přepnutí na self vymaže skrytý e-mail/jméno. Interní checkoutIntent má
+recipientSource=CHECKOUT_CUSTOMER a recipient=null; budoucí backend musí
+příjemce vyřešit podle znovu načtené autorizované objednávky. Klientský údaj
+buyerEmail ani starý skrytý příjemce nesmí rozhodovat. Současný webMethod
+stále vrací unavailable pro oba režimy. Zůstává nutné ověřit skutečné Wix
+chování self, včetně času/doručení a celého pokračování formuláře.
+
+Checkout intent nyní nese ověřené quantity 1–10, nominál za kus amountMinor
+a samostatné totalMinor. Nic z toho není platba ani vydání. Při submit se
+nativní Wix vstupy uzamknou do dokončení adaptéru, aby výsledek nepopisoval
+mezitím upravené údaje. Přidány testy množství, self/other, vymazání údajů,
+volitelného jména a přepočtu součtu; editorový/prohlížečový návrh je nepropojený.
+
+Další vstup pro vizuální přejímku: spodní část původního formuláře, rozbalený
+úplný popis a stav Pro mě, ideálně i mobilní snímek bez osobních částí browseru.
+Živý web ani jeho horní tlačítko se nemění.

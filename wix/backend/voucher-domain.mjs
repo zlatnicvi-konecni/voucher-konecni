@@ -4,10 +4,12 @@ export function checkoutIntent(input, productMap) {
   const selection = validateSelection(input);
   const product = productMap?.[selection.amount];
   if (!product?.productId || !product?.variantId || product.currency !== 'CZK' || product.kind !== 'STORES_DIGITAL_VOUCHER') throw new Error('CHECKOUT_NOT_CONFIGURED');
-  return { kind: 'KONECNI_VOUCHER_V1', currency: 'CZK', quantity: 1,
+  return { kind: 'KONECNI_VOUCHER_V1', currency: 'CZK', quantity: selection.quantity,
     amountMinor: selection.amount * 100, productId: product.productId,
+    totalMinor: selection.amount * 100 * selection.quantity,
     variantId: product.variantId,
-    recipient: { name: selection.recipientName, email: selection.recipientEmail },
+    recipientSource: selection.recipientType === 'self' ? 'CHECKOUT_CUSTOMER' : 'GIFT_RECIPIENT',
+    recipient: selection.recipientType === 'self' ? null : { name: selection.recipientName, email: selection.recipientEmail },
     senderName: selection.senderName, message: selection.message };
 }
 // Inspection only. No event handler is installed and no voucher is issued.

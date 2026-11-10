@@ -21,7 +21,7 @@ const assert = require('node:assert/strict');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       for (const amount of ['3000', '5000', '10000']) {
         await page.locator('input[name="amount"][value="' + amount + '"]').check();
-        for (const [id, value] of Object.entries({ recipientName: 'Test', recipientEmail: 'test@example.invalid', senderName: 'Test', message: '<script>invalid markup</script>' })) await page.locator('#' + id).fill(value);
+        for (const [id, value] of Object.entries({ recipientName: 'Test', recipientEmail: 'test@example.invalid' })) await page.locator('#' + id).fill(value);
         await page.locator('#privacy').check();
         await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();
         assert.match(await page.locator('#status').textContent(), /nebyly vytvořeny/);
@@ -32,6 +32,37 @@ const assert = require('node:assert/strict');
       await page.locator('#recipientEmail').fill('bad');
       await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();
       assert.equal(await page.locator('#status').textContent(), '');
+      // Quantity and recipient controls shown in the owner's reference.
+      await page.locator('#recipientEmail').fill('test@example.invalid');
+      await page.getByRole('button', { name: 'Zvýšit množství' }).click();
+      assert.equal(await page.locator('#quantity').inputValue(), '2');
+      await page.getByRole('button', { name: 'Snížit množství' }).click();
+      assert.equal(await page.locator('#minus').isDisabled(), true);
+      await page.locator('#quantity').fill('10');
+      assert.equal(await page.locator('#plus').isDisabled(), true);
+      for (const invalid of ['0', '11', '1.5']) {
+        await page.locator('#quantity').fill(invalid);
+        await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();
+        assert.equal(await page.locator('#status').textContent(), '');
+      }
+      await page.locator('#quantity').fill('2');
+      await page.getByRole('radio', { name: 'Pro mě', exact: true }).check();
+      assert.equal(await page.locator('#recipientFields').isVisible(), false);
+      assert.equal(await page.locator('#recipientEmail').inputValue(), '');
+      await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();
+      assert.match(await page.locator('#status').textContent(), /nebyly vytvořeny/);
+      await page.getByRole('radio', { name: 'Pro někoho jiného', exact: true }).check();
+      assert.equal(await page.locator('#recipientFields').isVisible(), true);
+      await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();
+      assert.equal(await page.locator('#status').textContent(), '');
+      await page.locator('#recipientEmail').fill('test@example.invalid');
+      await page.locator('#recipientName').fill('');
+      await page.getByRole('button', { name: 'Pokračovat do pokladny' }).click();
+      assert.match(await page.locator('#status').textContent(), /nebyly vytvořeny/);
+      const more = page.getByRole('button', { name: 'Zjistit více' });
+      await more.click();
+      assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      assert.equal(await page.locator('#descriptionMore').isVisible(), true);
       assert.deepEqual(unexpected, []);
       await page.close();
     }

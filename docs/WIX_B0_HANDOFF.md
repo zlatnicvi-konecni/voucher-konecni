@@ -109,8 +109,8 @@ idempotentní klíč musí být ve stejném serverovém emisním registru. Pád 
 zápisy nesmí vést k nové emisi; neurčitý výsledek vyžaduje načtení/reconciliation.
 
 PDF až z téhož uloženého kódu, soukromé úložiště, bez automatického e-mailu.
-Požadované vstupy: dvoustránkové grafiky 170×120 mm; 3k i 10k jsou již
-soukromě převzaty a kalibračně otestovány, 5k stále chybí. Zadní strana dole vlevo pole Kód: QR + čitelný stejný kód;
+Požadované vstupy: dvoustránkové grafiky 170×120 mm; všechny tři jsou již
+soukromě převzaty a samostatně kalibračně otestovány. Zadní strana dole vlevo pole Kód: QR + čitelný stejný kód;
 uprostřed dole platnost. Selhání PDF ponechá ISSUED; retry generuje PDF stejného
 voucheru. Platnost 24 měsíců je dosud pravidlo k potvrzení, ne serverový fakt.
 Online uplatnění přes Wix checkout není v této etapě implementované.
@@ -171,8 +171,8 @@ Finální zákaznická URL má zůstat `/darkovy-poukaz`; případná jiná cest
 jen izolovanému nepřipojenému testu. Předpoklad změnitelnosti nativní stránky
 musí potvrdit Wix Studio. Žádný nový odkaz/menu ani přepnutí na ostrém webu.
 
-PDF pipeline: viz `tools/pdf/README.md`. Originály 3k a 10k již převzaty a na
-každém samostatně ověřen neplatný kalibrační výstup; 5k stále není k dispozici. Nikde
+PDF pipeline: viz `tools/pdf/README.md`. Všechny tři originály již převzaty
+a na každém samostatně ověřen neplatný kalibrační výstup. Nikde
 nebyl použit nebo vystaven reálný voucherový kód. Skutečná platnost se bude
 číst z evidence, ukázkové datum není nové obchodní pravidlo. PDF/fotografie
 ani soukromé kontrolní screenshoty se do veřejného PR nevkládají.
@@ -182,3 +182,9 @@ doplněná pole při 300 dpi, přesného textu/data a dekódování QR. Současn
 opravena odhalená chyba odhadu šířky textu; přidána regrese pro delší kód
 a znovu ověřen skutečný originál 3k. Žádné původní PDF ani generovaný náhled
 se do veřejného PR nepřidává. Kontrolní fyzický tisk nadále čeká.
+
+Po převzetí 5k originálu samostatně ověřeny jeho rozměry, popisky a volná
+pole. Celá sada 6 PDF testů včetně soukromého 5k originálu prošla: první
+strana a zadní strana mimo doplnění beze změn, přesný vytištěný i dekódovaný
+zkušební kód a ukázkové datum. Tím je převzetí všech tří předloh dokončeno;
+nejde o schválení fyzického tisku, integrace ani ostrého nasazení.

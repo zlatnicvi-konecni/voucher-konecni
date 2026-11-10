@@ -11,12 +11,13 @@ nikoli tvrzení o neviděném schématu stávajícího Apps Scriptu.
 | Předloha | Stav v tomto prostředí |
 | --- | --- |
 | `3000_darkovy poukaz_edit1.pdf` | Převzata soukromou přílohou, ověřeny 2 strany 170 × 120 mm |
-| `5000_darkovy poukaz_edit1.pdf` | Dosud chybí |
+| `5000_darkovy poukaz_edit1.pdf` | Převzata soukromou přílohou, ověřeny 2 strany 170 × 120 mm |
 | `10000_darkovy poukaz_edit.pdf` | Převzata soukromou přílohou, ověřeny 2 strany 170 × 120 mm |
 
-U 3k i 10k byl ověřen MediaBox/CropBox/TrimBox bez rotace. Vstupní SHA-256:
+U všech tří originálů byl ověřen MediaBox/CropBox/TrimBox bez rotace. Vstupní SHA-256:
 
 - 3k: `6899fdebd0f0f027509ffe00e7af37ec91fcfd0dbcd71674ed8cd081663f177d`
+- 5k: `d0ac7b6fcbcf38d928156437a77226538ef403c823f34ce6866984b0b70f368c`
 - 10k: `414390e665b0de0a1c77dc1dcd1821419de761ce249ec2788e258e92c2c9ba2d`
 
 Originály, náhledy, soukromé manifesty ani skutečné kódy se NEukládají do tohoto
@@ -68,20 +69,22 @@ CLI nikdy nepřepíše existující soubor a ukládá výstup s právy 0600. Nev
 platný kód do CLI argumentů. Souřadnice manifestu jsou milimetry od levého
 DOLNÍHO rohu, strana 2, fonty v bodech. SHA a částka náleží stejnému originálu.
 
-Návrh souřadnic ZMĚŘENÝ samostatně na přijatých 3k a 10k předlohách
+Návrh souřadnic ZMĚŘENÝ samostatně na všech třech přijatých předlohách
 (není schválen fyzickým tiskem):
 
 | Prvek | x / y / šířka / výška mm | Font |
 | --- | --- | --- |
 | QR včetně bílé zóny | 21 / 21 / 18 / 18 | — |
-| Text kódu 3k | 21 / 15 / 35 / 4,2 | 9 pt |
+| Text kódu 3k a 5k | 21 / 15 / 35 / 4,2 | 9 pt |
 | Text kódu 10k | 21 / 15 / 35 / 4,2 | 8,5 pt |
 | Platnost | 76 / 16 / 28 / 5 | 9 pt |
 
 Soukromý JSON má `amount`, `sha256`, `layout` s `page:2`,
 `units:"mm-bottom-left"`, `visualApproved:false`, `printApproved:false`
 a poli `qr`, `code`, `expiry` dle tabulky (`x,y,width,height,fontSizePt`).
-Tyto pozice NEpřenášet automaticky na 5k bez převzetí a kontroly originálu.
+U 5k samostatně zkontrolovány popisky i volné místo a ověřen skutečný PDF
+výstup; pro ni výše uvedené souřadnice i 9pt text vyhovují. Případná další
+verze kteréhokoli originálu vyžaduje nové SHA a opětovnou kalibraci.
 10k má delší doprovodný text než 3k; vizuálně ověřeno, že QR/text do něj
 nezasahují. Zkušební 10k kód je delší, proto má samostatně navržených 8,5 pt.
 
@@ -106,9 +109,11 @@ Rasterizace: Poppler `pdftoppm`/`pdftotext`. Volitelný test originálu navíc
 vyžaduje Python s PyMuPDF a Pillow; porovnává skutečný vstup a výstup na 300 dpi.
 Nikde se nevolá veřejná QR služba ani backend evidence.
 
-Na skutečných 3k a 10k předlohách samostatně PROŠLO: dvě strany, rozměry, první strana pixelově
-shodná, strana 2 mimo tři pole pixelově shodná, text + datum a dekódování QR
-odpovídají kalibračnímu vzorku. Fyzický tisk/sken z papíru, schválení pozic,
-5k originál a kód+platnost ze skutečné testovací evidence ZATÍM NEOVĚŘENY.
+Na skutečných 3k, 5k a 10k předlohách samostatně PROŠLO: dvě strany, rozměry,
+první strana pixelově shodná, strana 2 mimo tři pole pixelově shodná, text +
+datum a dekódování QR odpovídají kalibračnímu vzorku. U 5k prošla celá sada
+6 testů včetně privátního originálu; samotný renderer nebylo nutné měnit.
+Fyzický tisk/sken z papíru, schválení pozic a kód+platnost ze skutečné testovací
+evidence ZATÍM NEOVĚŘENY.
 
 Rollback: revert commitu rendereru; neexistuje migrace, změna serveru ani dat.

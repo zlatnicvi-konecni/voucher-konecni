@@ -10,7 +10,7 @@ export function checkoutIntent(input, productMap) {
     variantId: product.variantId,
     recipientSource: selection.recipientType === 'self' ? 'CHECKOUT_CUSTOMER' : 'GIFT_RECIPIENT',
     recipient: selection.recipientType === 'self' ? null : { name: selection.recipientName, email: selection.recipientEmail },
-    senderName: selection.senderName, message: selection.message };
+    message: selection.message, requestedDeliveryDate: selection.requestedDeliveryDate, requestedDeliveryTime: selection.requestedDeliveryTime };
 }
 // Inspection only. No event handler is installed and no voucher is issued.
 // Input must eventually come from an authenticated fresh server order read.

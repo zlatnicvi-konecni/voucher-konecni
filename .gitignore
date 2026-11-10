@@ -4,3 +4,7 @@ work/
 private/
 *.pdf
 *.PDF
+*.zip
+*.sqlite
+*.sqlite-*
+**/var/cache/fontconfig/

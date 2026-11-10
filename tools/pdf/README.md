@@ -117,3 +117,28 @@ Fyzický tisk/sken z papíru, schválení pozic a kód+platnost ze skutečné te
 evidence ZATÍM NEOVĚŘENY.
 
 Rollback: revert commitu rendereru; neexistuje migrace, změna serveru ani dat.
+
+## Stabilní soukromý zdroj a integrační průchod všech hodnot
+
+Všechny tři stejné originály jsou nyní dostupné z povolené privátní větve
+`zlatnicvi-konecni/Konecni_eschop_android:assets/voucher-original-pdfs`, ZIP ve
+složce `codex-private-voucher-assets`. Původní archiv používá názvy voucher_3000,
+voucher_5000 a voucher_10000.pdf. Bezpečný importer je mapuje na původní názvy
+výše a ověří SHA; extrakci pod tento veřejný checkout odmítá.
+
+```sh
+node tools/pdf/import-private-zip.mjs /private/Konecni_vouchery_originaly_3_PDF.zip /private/originals
+VOUCHER_ORIGINALS_DIR=/private/originals npm test --prefix tools/pdf
+```
+
+`original-templates.mjs` obsahuje pouze kontrolní metadata a pozice, se všemi
+schvalovacími flagy false. `private-renderer.mjs` vybírá pevné serverové jméno
+souboru podle hodnoty, kontroluje registrovaný SHA a používá existující renderer.
+
+Nový test all-private-originals spojuje ověřený testovací PAID order, HMAC,
+trvalou lokální fixture evidenci a PDF ze skutečných originálů. QR/text/data
+se ověřují proti vydanému LOKÁLNÍMU testovacímu záznamu, nikoli jen pevnému
+kalibračnímu řetězci. Po chybě PDF zůstává tentýž kód; replay nezdvojuje kódy
+ani uložené PDF. Test simuluje souhlas s layouty jen ve své kopii konfigurace.
+Skutečná evidence ani schválení se tím nezmění. Podrobnosti a hranice přejímky:
+`docs/WIX_B1_TEST_STAGE.md`, `docs/PR3_REVIEW_RESPONSE.md`.

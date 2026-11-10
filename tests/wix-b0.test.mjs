@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSelection } from '../wix/public/voucher-model.mjs';
+import { validateSelection, deliveryTimeOptions, pragueDate } from '../wix/public/voucher-model.mjs';
 import { checkoutIntent, inspectPaidOrder } from '../wix/backend/voucher-domain.mjs';
-const input = { amount: 3000, recipientName: 'Test', senderName: 'Test', recipientEmail: 'test@example.invalid', message: '', privacyAcknowledged: true };
+const input = { amount: 3000, recipientName: 'Test', recipientEmail: 'test@example.invalid', message: '' };
 const product = { productId: 'fixture', variantId: 'fixture-3k', currency: 'CZK', kind: 'STORES_DIGITAL_VOUCHER', amountMinor: 300000 };
 const order = { id: 'fixture-order', paymentStatus: 'PAID', currency: 'CZK', totalMinor: 300000, items: [{ id: 'fixture-line', productId: 'fixture', variantId: 'fixture-3k', quantity: 1, unitAmountMinor: 300000 }] };
 test('allowlisted values, recipient validation and server-owned checkout mapping', () => {
   for (const amount of [3000, 5000, 10000]) assert.equal(validateSelection({ ...input, amount }).amount, amount);
-  for (const patch of [{ amount: -1 }, { amount: 1500 }, { recipientEmail: 'invalid' }, { privacyAcknowledged: false }, { recipientName: 'x'.repeat(101) }, { message: 'x'.repeat(501) }]) assert.throws(() => validateSelection({ ...input, ...patch }));
+  for (const patch of [{ amount: -1 }, { amount: 1500 }, { recipientEmail: 'invalid' }, { recipientName: 'x'.repeat(101) }, { message: 'x'.repeat(501) }]) assert.throws(() => validateSelection({ ...input, ...patch }));
   assert.throws(() => checkoutIntent(input, {}), /NOT_CONFIGURED/);
   assert.equal(checkoutIntent({ ...input, productId: 'attacker', amountMinor: 1 }, { 3000: product }).amountMinor, 300000);
   assert.equal(checkoutIntent(input, { 3000: product }).productId, 'fixture');
@@ -26,18 +26,19 @@ test('native Wix page controller blocks double click and handles disconnected ch
   const { readFileSync } = await import('node:fs');
   const vm = await import('node:vm');
   const nodes = {};
-  for (const id of ['voucherAmount', 'voucherQuantity', 'quantityMinus', 'quantityPlus', 'voucherPrice', 'recipientType', 'recipientFields', 'recipientName', 'recipientEmail', 'privacyAcknowledged', 'continueCheckout', 'voucherStatus']) nodes['#' + id] = {
+  for (const id of ['voucherAmount', 'voucherQuantity', 'quantityMinus', 'quantityPlus', 'voucherPrice', 'recipientType', 'recipientFields', 'recipientName', 'recipientEmail', 'giftMessage', 'deliveryDate', 'deliveryTime', 'descriptionFull', 'descriptionSummary', 'descriptionToggle', 'continueCheckout', 'voucherStatus']) nodes['#' + id] = {
     onChange(fn) { this.change = fn; }, onInput(fn) { this.input = fn; }, onClick(fn) { this.click = fn; },
     collapse() { this.collapsed = true; }, expand() { this.collapsed = false; },
     disable() { this.disabled = true; }, enable() { this.disabled = false; }, text: ''
   };
   Object.entries({ voucherAmount: '3000', voucherQuantity: '1', recipientType: 'other', recipientName: 'Test', recipientEmail: 'test@example.invalid' }).forEach(([id, value]) => { nodes['#' + id].value = value; });
-  nodes['#privacyAcknowledged'].checked = true;
+  nodes['#giftMessage'].value = '';
+  nodes['#deliveryTime'].value = 'now';
   const $w = id => nodes[id]; $w.onReady = fn => fn();
   let resolveCheckout, calls = 0;
   const prepareVoucherCheckout = () => { calls++; return new Promise(resolve => { resolveCheckout = resolve; }); };
   const source = readFileSync('wix/pages/darkovy-poukaz.js', 'utf8').replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, { $w, validateSelection, prepareVoucherCheckout });
+  vm.runInNewContext(source, { $w, validateSelection, deliveryTimeOptions, pragueDate, prepareVoucherCheckout });
   assert.equal(nodes['#quantityMinus'].disabled, true);
   nodes['#quantityPlus'].click(); assert.equal(nodes['#voucherQuantity'].value, '2');
   nodes['#quantityMinus'].click(); assert.equal(nodes['#voucherQuantity'].value, '1');
@@ -70,4 +71,16 @@ test('quantity and recipient choice are validated server-side; self cannot smugg
   const self = checkoutIntent({ ...input, recipientType: 'self', recipientEmail: 'stale@example.invalid', buyerEmail: 'forged@example.invalid' }, { 3000: product });
   assert.equal(self.recipient, null); assert.equal(self.recipientSource, 'CHECKOUT_CUSTOMER');
   assert.equal(validateSelection({ ...input, recipientType: 'self' }).recipientEmail, '');
+});
+
+
+test('actual lower form fields: delivery preference, Prague timezone and hidden message clearing', () => {
+  const preference = { ...input, requestedDeliveryDate: '2030-01-02', requestedDeliveryTime: '14:15', message: 'Test' };
+  assert.equal(validateSelection(preference).requestedDeliveryTime, '14:15');
+  for (const patch of [{ recipientName: 'x'.repeat(51) }, { requestedDeliveryDate: '2030-02-30' }, { requestedDeliveryTime: '25:00' }, { requestedDeliveryTime: '12:07' }, { requestedDeliveryDate: null }]) assert.throws(() => validateSelection({ ...preference, ...patch }));
+  const self = validateSelection({ ...preference, recipientType: 'self' });
+  assert.equal(self.message, ''); assert.equal(self.requestedDeliveryDate, null); assert.equal(self.requestedDeliveryTime, 'now');
+  const clock = new Date('2026-11-10T22:31:00Z');
+  assert.equal(pragueDate(clock), '2026-11-10');
+  assert.deepEqual(deliveryTimeOptions('2026-11-10', clock).map(o => o.value), ['now', '23:45']);
 });

@@ -1,228 +1,114 @@
-# Issue #2 — B0: vlastní stránka ve Wixu (nepublikovaný návrh)
+# Wix podstránka poukazů — předání aktuálního návrhu PR #3
 
-## Co je připravené
+## Stav a ověřená reference
 
-Samostatná nativní Wix Studio stránka: kód `wix/pages/darkovy-poukaz.js`,
-společná validace `wix/public/voucher-model.mjs` a bezpečně nepropojený backend
-`wix/backend/voucherCheckout.web.js`. Backend vždy vrací nedostupnou pokladnu,
-nevytváří košík/objednávku/poukaz ani neposílá e-mail. Nepoužívá nativní Gift
-Cards API. Nikde není event handler aktivující emisi.
+Jde o nativní Velo zdrojový návrh a lokální HTML preview. Není instalovaný ani
+publikovaný ve Wixu; skutečná standardní pokladna se neotevírá. Backend
+`prepareVoucherCheckout` zůstává fail-closed (`available:false`). Nový tok
+nepoužívá nativní Wix Gift Cards emisi. Původní `index.html` je beze změny.
 
-`wix/preview/` je pouze lokální responzivní náhled rozvržení, NE stránka pro
-hostování na GitHub Pages. Nezavádět HTML iframe do Wixu. Skutečná stránka má
-použít native Wix prvky a sdílený site header/footer, design tokens a existující
-cookie/privacy komponenty. Náhled obsahuje zástupný textový brand a ilustraci;
-netvrdíme pixelovou shodu se schváleným e-shopem. Nepřidávat grafiky do tohoto
-veřejného repozitáře bez souhlasu.
+Veřejná stránka https://www.zlatnictvi-konecni.cz/darkovy-poukaz byla načtena
+v Chromiu v čtecím režimu: pouze GET zdroje, všechny POST/purchase požadavky
+zablokované. Provedena inventarizace celého formuláře, rozbaleného popisu,
+režimu Pro mě a desktop/mobil snímků. Nepoužil se zákaznický účet ani Koupit.
+Soukromé referenční snímky ani fotografie nejsou ve veřejném repozitáři.
 
-## Zjištění z veřejného webu (10. 11. 2026)
-
-Čtecí kontrola https://www.zlatnictvi-konecni.cz/ a odkazu Dárkový poukaz:
-- `/darkovy-poukaz` UŽ EXISTUJE. Nepřepsat ani nepřesměrovat. Staging návrh
-  pracovně `/darkovy-poukaz-test`, URL ověřit v Editoru před založením.
-- Navigace Home / Obchod / O nás / Kontakt; společná patička včetně právních
-  odkazů. Existující horní odkaz musí do schválení zůstat beze změny.
-- Veřejný text cílové stránky obsahuje 3/5/10 tisíc, množství a tlačítko Koupit;
-  z čtecího textu nelze určit skutečný typ produktu ani celý formulář. Je třeba
-  v Editoru potvrdit aplikaci, checkout a aktuální pole příjemce.
-- Ve veřejném markup je brand barva #C59854; ostatní barvy/fonty návrhu jsou
-  pracovní, nikoli vyexportované tokeny. Ve Wixu převzít skutečný theme.
-
-Nebyl změněn živý web, košík, platební stav ani objednávka #10002.
-
-## Postup pro izolovaný Wix návrh — zatím NEPROVEDENO
-
-1. Získat přístup k oddělenému testovacímu Wix webu / nepublikovanému návrhu.
-   Zachovat globální header/logo/menu/footer, mobilní menu a správu souhlasů.
-   Vložit pouze nový obsah pod header. Header neklonovat do stránky.
-2. Přidat nativní prvky s IDs:
-
-| ID | Wix prvek / konfigurace |
-| --- | --- |
-| voucherAmount | RadioButtonGroup, hodnoty řetězce 3000 / 5000 / 10000, default 3000 |
-| voucherQuantity | Number input, celé číslo 1–10, default 1 |
-| quantityMinus / quantityPlus | Buttons − / + s přístupnými popisky Snížit/Zvýšit množství |
-| voucherPrice | Text pro aktuální jednotkovou cenu |
-| recipientType | RadioButtonGroup other / self, default other |
-| recipientFields | Collapsible container pro e-mail a jméno příjemce |
-| recipientName | Text input, nepovinné podle reference, max 100, viditelný label |
-| recipientEmail | Email input, povinné pro other, max 254, viditelný label |
-| privacyAcknowledged | Checkbox a stávající právní odkaz webu; text schválit |
-| continueCheckout | Button „Pokračovat do pokladny“ |
-| voucherStatus | Text s přístupným live status oznámením nastaveným v Editoru |
-
-   Nad formulář umístit nadpis a produktovou ilustraci, na desktopu 2 sloupce,
-   pod 700 px jeden sloupec, pořadí obrázek → nadpis → pole → CTA. Obsloužit
-   klávesnici, focus, popisky a chyby; ověřit i Wix accessibility checker.
-3. Zkopírovat `voucher-model.mjs` jako Wix `public/voucher-model.js` (ES modul),
-   `.web.js` do backendu a page code do nové stránky. `.mjs` přípona zde slouží
-   lokálním Node testům. `voucher-domain.mjs` je testovatelný NÁVRH interního
-   kontraktu, nikoli Wix order JSON či instalovaný integrační backend.
-4. Sestavit běžný digitální Wix Stores produkt / 3 varianty bez jakéhokoli
-   nativního Gift Cards napojení. Serverová allowlist mapa nominál → productId
-   + variantId + cena + CZK. Nepřebírat ID, cenu či příznak voucheru od klienta.
-   Košík musí zachovat visitor/member session; neprovádět přes elevaci přístupu
-   k libovolnému košíku podle browserem dodaného ID.
-5. Produkt zařadit do vyhrazené kategorie voucherů a galerie šperků konfigurovat
-   na explicitní kategorie bez voucheru. Ověřit všechny galerie, vyhledávání a
-   související produkty. Přepínač hidden může blokovat prodej; samotný návrh
-   nastavení není důkaz, že produkt zůstává zakoupitelný.
-6. Až v B1 nahradit nepropojený backend skutečným cart/checkout adaptérem.
-   Přidat serverem vybranou variantu k AKTUÁLNÍMU košíku a použít standardní
-   Wix checkout/navigation API. Žádná ručně sestavená externí checkout URL.
-   Uchovat příjemce/věnování serverově s náhodným draft ID, bezpečně navázaným
-   na session, položku a objednávku; osobní údaje nedávat do URL/console/analytics.
-   Mapování konkrétních Wix polí ověřit, nevkládat vymyšlený payload z B0.
-7. Bankovní převod, dopravu digitální položky, případné slevy/daně, smíšený košík,
-   idempotenci dvojkliku a obnovu při neurčitém výsledku checkoutu ověřit na
-   skutečném testovacím webu. Pro smíšené košíky/slevy B0 inspektor bezpečně
-   vyžaduje ruční řešení; obchodní pravidla ještě nejsou schválena.
-
-## Konkrétní API pro další etapu
-
-- Current Cart s visitor/member identitou: [Add To Current Cart](https://dev.wix.com/docs/velo/apis/wix-ecom-backend/current-cart/add-to-current-cart),
-  [Create Checkout From Current Cart](https://dev.wix.com/docs/velo/apis/wix-ecom-backend/current-cart/create-checkout-from-current-cart).
-  Ověřit instalovanou verzi a Cart V2 migraci: REST v1 add-to-cart dokumentace
-  avizuje deprecaci 1. 2. 2027 ve prospěch Add Line Items To Current Cart.
-- [Wix eCommerce frontend](https://dev.wix.com/docs/velo/apis/wix-ecom-frontend/introduction):
-  refresh cart + navigateToCheckout; standardní checkout zůstává ve Wix flow.
-  Ověřit výslednou adresu/doménu na konkrétním webu, neprohlašovat ji za hotovou.
-- [Payment status event](https://dev.wix.com/docs/velo/events-service-plugins/e-commerce/events/on-order-payment-status-updated),
-  `orders.getOrder` pro čerstvé serverové čtení s oprávněním Read Orders.
-  Eventy neběží ve Wix Preview; publikace odděleného testovacího webu vyžaduje
-  další schválení, v tomto PR se nic nepublikuje.
-- Backendový webMethod pouze sestaví checkout. Vydání nesmí být veřejný
-  webMethod. Wix Secrets a Apps Script ScriptProperties pouze serverově;
-  admin scope pro custom line items zatím nepotřebujeme (preferován Stores
-  katalog). Konkrétní oprávnění ověřit podle zvoleného API v B1.
-
-## Platba, idempotence, PDF — navržený kontrakt, ne integrace
-
-Wix ověřený event → fresh getOrder → kontrola PAID, měny CZK, serverového
-produktu/varianty, jednotkové ceny, kusů, součtů, storna/refundace → interní
-normalizovaný order → plán jednotek. `inspectPaidOrder` nikdy nic nevydává.
-Klíč jednotky je JSON tuple `[orderId,lineItemId,unitNumber]`; event ID je
-pouze audit/replay identifikátor. Stabilní klíče samy o sobě NEJSOU transakce.
-
-B1 Apps Script adaptér musí ověřit testovací prostředí, autentizaci, časové
-okno podpisu/nonce a vazbu na povolený Wix site. Přesný podpisový kontrakt a
-přenos bez spoléhání na nepodporované GAS request headers definovat až podle
-zdrojů backendu (případně podepsaná obálka těla). LockService i dohledatelný
-idempotentní klíč musí být ve stejném serverovém emisním registru. Pád mezi
-zápisy nesmí vést k nové emisi; neurčitý výsledek vyžaduje načtení/reconciliation.
-
-PDF až z téhož uloženého kódu, soukromé úložiště, bez automatického e-mailu.
-Požadované vstupy: dvoustránkové grafiky 170×120 mm; všechny tři jsou již
-soukromě převzaty a samostatně kalibračně otestovány. Zadní strana dole vlevo pole Kód: QR + čitelný stejný kód;
-uprostřed dole platnost. Selhání PDF ponechá ISSUED; retry generuje PDF stejného
-voucheru. Platnost 24 měsíců je dosud pravidlo k potvrzení, ne serverový fakt.
-Online uplatnění přes Wix checkout není v této etapě implementované.
-
-## Test report / otevřená akceptace
-
-- `node --test tests/wix-b0.test.mjs`: validace hodnot/osobních údajů,
-  ignorování podvržené ceny/product ID, NOT_PAID/částka/měna/refundace/storno,
-  stabilní klíče a rozlišení kusů; vše jen in-memory, žádná skutečná emise.
-- `node tests/wix-b0.browser.cjs`: offline Chromium 390/768/1440 px, bez
-  horizontálního přetečení, náhled horní CTA → formulář, všechny hodnoty,
-  validace a mazání statusu. Žádná navigace do externí domény ani API požadavek.
-- Původní `index.html` je beze změny proti výchozí testovací větvi. Původní
-  create/lookup/redeem/device/QR/NIIMBOT se v B0 nezapojují. Jejich živá regrese
-  ani opravy z dosud samostatného PR #1 nejsou součástí tohoto PR.
-- NEOTESTOVÁNO: instalace v Editoru, pixelová shoda, skutečné CTA → standardní
-  checkout, doména pokladny, koupitelnost mimo galerie, skutečný PAID → 1 zápis
-  + 1 PDF, replay/concurrency, fyzický QR/čerpání a tisk. Nelze splnit bez Wix
-  přístupu, testovacího Apps Script kódu/schématu/tabulky a PDF předloh.
-
-Přejímka B1 musí zahrnout NOT_PAID → nic, PAID → 1 voucher + 1 PDF, replay/
-dvojklik/souběh/timeout → tentýž kód; chybný produkt, cena, měna a refundace →
-blokace/ruční řešení, QR lookup a částečné redeem v testovací evidenci. Nikdy
-neoznačovat živou objednávku za zaplacenou kvůli testu.
-
-Nezávislá kontrola: tento dokument je předání existujícímu testerovi, nikoli
-nezávislý review. Nový agent nebyl založen. Po review a všech přejímkách teprve
-žádat majitele o souhlas s přepnutím; současný horní odkaz zůstává nezměněný.
-Rollback B0: revert PR commitu, žádná datová migrace. Budoucí přepnutí musí mít
-uložený původní cíl tlačítka; historické Wix karty a původní stránku nemažeme.
-
-
-## Závazné upřesnění originálů a vzhledu (Issue #2, doplnění 10. 11. 2026)
-
-Předchozí barevná ilustrace náhledu nebyla schválená a byla odstraněna. Náhled
-nyní odkazuje na PŘESNÝ původní asset fotografie z veřejné Wix stránky:
+Potvrzená původní fotografie:
 `https://static.wixstatic.com/media/3b66ad_f4ac0f05d5594d73a593a1977148ed69~mv2.png`.
-Byl vizuálně ověřen na čtecím snímku stránky (bílý voucher, růžové květiny,
-zlaté hrany). Soubor fotografie nebyl přidán do veřejného repozitáře. Obrázek
-z obecné og:image metadata stránky byl prověřen a NENÍ fotografií voucheru;
-nesmí se použít jako náhrada. Native Wix stránka převezme tento existující
-Media Manager asset a původní crop/rozměry; nemá vytvářet nový obrázek.
+Preview i budoucí Wix stránka používají tento asset, nevytváří nový obrázek.
+Ve Wix Editoru zachovat i původní crop a rozměry. Og:image celé stránky není
+fotografie voucheru a nesmí se zaměnit za produktový obrázek.
 
-V náhledu bílé pozadí, skutečný název, malé nominálové volby a omezení uplatnění
-pouze v kamenné prodejně. To pořád není potvrzená vizuální kopie. Původní header,
-logo, login/košík, footer, přesné theme fonty/rozměry a všechny dynamické části
-formuláře musí zůstat ve Wix rámu. Před přepnutím musí proběhnout srovnání
-s celým aktuálním formulářem a screenshoty desktop/mobil.
+Potvrzený nadpis používá Caudex, desktop 46 px / 57 px a barvu #3c0017. Preview
+odkazuje na stejnou Caudex font cache ve Wixu. Velo stránka má převzít skutečné
+site theme; lokální header/logo/login/footer jsou jen zástupné, nikoli pixelová
+přejímka. V Editoru NEMĚNIT původní sdílené záhlaví, mobilní menu, foto, patičku,
+správu souhlasů nebo cookie banner. Nezakládat nový viditelný odkaz v menu.
 
-Čtecí browser kontrola nepovolovala žádný POST ani nákupní akci. V tomto
-omezeném režimu byly vidět nominály, Množství (1–10) a Koupit, ale nebyla
-zpřístupněna celá dynamická část. Podle reference majitele je nutné doplnit
-přepínač Pro někoho jiného / Pro mě, původní popis se Zjistit více a všechna
-navazující pole. B0 model již podle dodané reference podporuje 1–10 kusů a volbu příjemce,
-ale stále nejde o hotovou náhradu celého původního formuláře. Neodvozovat chybějící pole z domněnek.
+## Celý původní formulář a implementované chování
 
-Finální zákaznická URL má zůstat `/darkovy-poukaz`; případná jiná cesta slouží
-jen izolovanému nepřipojenému testu. Předpoklad změnitelnosti nativní stránky
-musí potvrdit Wix Studio. Žádný nový odkaz/menu ani přepnutí na ostrém webu.
+- Původní název, popis a omezení uplatnění pouze v kamenné prodejně v Olomouci.
+  Rozbalení Zjistit více / Méně používá skutečný celý popis, nikoli odhad textu.
+- Tři malé nominály 3 000 / 5 000 / 10 000 Kč a jednotková cena.
+- Množství 1–10 s −/+, stejná validace v interním serverovém modelu.
+- Pro někoho jiného / Pro mě. U Pro mě se skryjí a vymažou VŠECHNY údaje
+  obdarovaného včetně zprávy, dne a času; to bylo ověřeno na původním widgetu.
+- Jiný příjemce: E-mail příjemce (povinný, max 100), Jméno příjemce (volitelné,
+  max 50), Datum doručení, Čas doručení s Nyní a čtvrthodinami, text o vypršení
+  za 24 měsíců a Zpráva (max 500). Následuje původní CTA Koupit.
+- Původní widget nemá další jméno odesílatele ani samostatný povinný checkbox
+  v tomto formuláři. Dřívější mocková pole odstraněna. Právní souhlasy mají
+  zůstat v původním Wix rámci/standardní pokladně, nikoli nově vymyšleném UI.
+- Časy i výchozí den se vztahují k Europe/Prague; opraven přechod přes půlnoc
+  mezi UTC a Prahou. Datum/čas jsou PREFERENCE předání, nikdy důkaz platby.
+  Plánované doručování/e-mail zatím NEFUNGUJE a není zapnuté. Před přepnutím
+  musí majitel schválit, jak obsluha požadovaný termín při ručním odeslání splní.
+- Změna údajů / invalid vymaže starý status. V nativním controlleru se při
+  submit uzamknou vstupy i tlačítka, aby výsledek nepopisoval mezitím změněná data.
 
-PDF pipeline: viz `tools/pdf/README.md`. Všechny tři originály již převzaty
-a na každém samostatně ověřen neplatný kalibrační výstup. Nikde
-nebyl použit nebo vystaven reálný voucherový kód. Skutečná platnost se bude
-číst z evidence, ukázkové datum není nové obchodní pravidlo. PDF/fotografie
-ani soukromé kontrolní screenshoty se do veřejného PR nevkládají.
+## Wix Editor — prvky pro izolovaný návrh
 
-U 10k prošla kontrola dvou stran, 170 × 120 mm, shody původních pixelů mimo
-doplněná pole při 300 dpi, přesného textu/data a dekódování QR. Současně
-opravena odhalená chyba odhadu šířky textu; přidána regrese pro delší kód
-a znovu ověřen skutečný originál 3k. Žádné původní PDF ani generovaný náhled
-se do veřejného PR nepřidává. Kontrolní fyzický tisk nadále čeká.
+| ID | Nativní prvek / nastavení |
+| --- | --- |
+| voucherAmount | RadioButtonGroup: 3000 / 5000 / 10000; default 3000 |
+| voucherPrice | Text s aktuální jednotkovou cenou |
+| voucherQuantity | Number input: celé číslo 1–10, default 1 |
+| quantityMinus / quantityPlus | Buttons − / +, přístupné popisky Snížit/Zvýšit množství |
+| recipientType | RadioButtonGroup: other / self; default other |
+| recipientFields | Collapsible container VŠECH polí příjemce a zprávy/doručení |
+| recipientEmail | Email input, povinný pro other, max 100 |
+| recipientName | Text input, nepovinný, max 50 |
+| deliveryDate | DatePicker, kalendářní den; výchozí dnešek Europe/Prague |
+| deliveryTime | Dropdown, value now nebo HH:mm; options vytváří controller |
+| giftMessage | TextBox, max 500, volitelný |
+| descriptionSummary / descriptionFull | Textové prvky s původním zkráceným/celým popisem |
+| descriptionToggle | Button Zjistit více / Méně |
+| continueCheckout | Button s původním textem Koupit |
+| voucherStatus | Text s přístupným live oznámením nastaveným v Editoru |
 
-Po převzetí 5k originálu samostatně ověřeny jeho rozměry, popisky a volná
-pole. Celá sada 6 PDF testů včetně soukromého 5k originálu prošla: první
-strana a zadní strana mimo doplnění beze změn, přesný vytištěný i dekódovaný
-zkušební kód a ukázkové datum. Tím je převzetí všech tří předloh dokončeno;
-nejde o schválení fyzického tisku, integrace ani ostrého nasazení.
+Vložit page code `wix/pages/darkovy-poukaz.js`; veřejný modul
+`wix/public/voucher-model.mjs` v Editoru uložit jako `public/voucher-model.js`.
+`wix/backend/voucherCheckout.web.js` zůstává nepropojený. `voucher-domain.mjs`
+je interní normalizovaný návrh, nikoli skutečné Wix API JSON schéma.
 
+Interní checkoutIntent vybírá digitální produkt/variantu z povolené serverové
+mapy, nikoli z klientských ID/ceny. Nese nominál za kus, množství a součet.
+Pro mě vrací recipientSource=CHECKOUT_CUSTOMER, recipient=null. Budoucí backend
+musí použít zákazníka z autorizovaného checkoutu, nikoli client buyerEmail.
+Údaje příjemce/zprávy nesmějí být v URL nebo diagnostických logách.
 
-## Zapracování snímku od majitele
+## Co vyžaduje skutečný Wix testovací web
 
-Viditelná část snímku je nová závazná reference. Náhled upraven na bílé pozadí,
-stejnou původní fotografii, dvousloupcový obsah, menší patkový nadpis, popis a
-Zjistit více, malé nominály, Množství a Pro někoho jiného / Pro mě. Pod nimi je
-povinný e-mail a nepovinné jméno v pořadí ze snímku. Chování rozbaleného popisu
-ani Pro mě na snímku není vidět: lokální chování je návrh k přejímce, ne důkaz
-shody s původním widgetem. Úplný popis se musí převzít z Wixu, nevymýšlet jej.
+1. Zachovat finální zákaznickou URL `/darkovy-poukaz`, která již existuje.
+   Ověřit, zda lze bezpečně nahradit nativní widget, nebo je třeba nejdříve
+   izolovaná dočasná testovací route. Původní stránku nesmazat, uložit rollback.
+2. Vytvořit běžný digitální Stores produkt/varianty bez nativní Gift Cards emise.
+   Kategorie galerie šperků musí voucher vyloučit, ale produkt zůstat koupitelný.
+   Samotný hidden přepínač není důkaz funkčnosti.
+3. Přidat serverově vybranou položku do AKTUÁLNÍHO košíku s visitor/member
+   session a otevřít standardní Wix checkout. Nevěřit browserem dodanému cart ID,
+   nepoužívat externí checkout URL. Zachovat bankovní převod a digitální dopravu.
+4. Ověřit aktuální Cart API / případnou Cart V2 migraci. Pro read order je nutná
+   Wix serverová identita a Read Orders; custom line items by vyžadovaly další
+   admin oprávnění, proto preferujeme Stores katalog. Secrets pouze na serveru.
+5. Pro budoucí emisi použít ověřený payment event a znovu Get Order. Backend
+   events nefungují ve Wix Preview; ani testovací publikace není tímto PR povolená.
+6. Ověřit nativní desktop/mobil vzhled, celou cestu do checkoutu, galerie,
+   digitální daně/slevy/smíšené košíky, termíny ručního předání a privacy flow.
 
-Původní povinné pole odesílatele z mocku odstraněno z UI; nebylo podloženo
-snímkem. Optional senderName/message zůstávají jen jako návrhová metadata ve
-sdíleném modelu; nejsou vyžadovány. Spodní část formuláře za jménem příjemce
-není na snímku doložená. Consent a testovací CTA jsou v náhledu označené jako
-prozatímní. Login/košík/logo/footer jsou v lokálním náhledu jen zástupné;
-ve Wixu zůstávají skutečné sdílené komponenty. Snímek s osobními prvky
-prohlížeče není součástí veřejného repozitáře. Pixelová shoda se netvrdí.
+## Evidence, PDF, přejímka
 
-Přepnutí na self vymaže skrytý e-mail/jméno. Interní checkoutIntent má
-recipientSource=CHECKOUT_CUSTOMER a recipient=null; budoucí backend musí
-příjemce vyřešit podle znovu načtené autorizované objednávky. Klientský údaj
-buyerEmail ani starý skrytý příjemce nesmí rozhodovat. Současný webMethod
-stále vrací unavailable pro oba režimy. Zůstává nutné ověřit skutečné Wix
-chování self, včetně času/doručení a celého pokračování formuláře.
+Spustitelná další etapa a přesný testovací kontrakt jsou v
+`docs/WIX_B1_TEST_STAGE.md`; obsahuje autentizaci, replays, trvalé klíče,
+restart/timeout a hranici mezi SQLite fixture a skutečným Apps Scriptem/Sheets.
+Všechny originály se nyní ověřují ze soukromého repozitáře, ne z veřejného PR;
+metadata, loader a testy jsou v `tools/pdf`. Layout approvals jsou stále false
+pro běžný renderer; fyzický tisk a skutečné serverové mapování nejsou schválené.
 
-Checkout intent nyní nese ověřené quantity 1–10, nominál za kus amountMinor
-a samostatné totalMinor. Nic z toho není platba ani vydání. Při submit se
-nativní Wix vstupy uzamknou do dokončení adaptéru, aby výsledek nepopisoval
-mezitím upravené údaje. Přidány testy množství, self/other, vymazání údajů,
-volitelného jména a přepočtu součtu; editorový/prohlížečový návrh je nepropojený.
+Původní Apps Script/schéma/oddělená testovací tabulka a Wix Studio přístup stále
+chybí. Proto nebyl skutečně proveden PAID→Google Sheets ani QR čerpání přes
+existující backend. Offline testy tuto přejímku nenahrazují. Online uplatnění
+v checkoutu je další samostatný projekt. Objednávka #10002 zůstala beze změny.
 
-Další vstup pro vizuální přejímku: spodní část původního formuláře, rozbalený
-úplný popis a stav Pro mě, ideálně i mobilní snímek bez osobních částí browseru.
-Živý web ani jeho horní tlačítko se nemění.
+Rollback změn = revert příslušného commitu, bez migrace nebo vzdálené konfigurace.
+Přepnutí horního odkazu/routy až po nezávislé kontrole a výslovném schválení.

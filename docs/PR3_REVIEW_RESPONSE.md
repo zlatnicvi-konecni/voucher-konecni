@@ -43,3 +43,14 @@ pokud nejsou nastavené jeho env proměnné; nový all-original test ověřuje v
 
 Po aktualizaci následuje samostatná kontrola testovacím agentem na přesném
 commitu. Její závěry a případné opravy budou zaznamenané před závěrečným předáním.
+
+## Oprava nálezu z nezávislého opakování
+
+Tester na commitu dec728a odhalil P2 v privátním importeru: Python assert
+šlo vypnout pomocí PYTHONOPTIMIZE=1 a obejít kontroly SHA/cílové cesty.
+Všechny produkční guardy importeru nahrazeny explicitními if/raise, které
+optimalizace neodstraní. Nová regrese pod PYTHONOPTIMIZE=1 ověřuje odmítnutí
+falešných bytes, veřejného cíle a symlinku a také legitimní privátní import.
+PDF verifikační subprocess navíc vynucuje PYTHONOPTIMIZE=0 a kontroluje
+__debug__, aby ani rodičovské optimalizované prostředí nemohlo dát falešný PASS.
+Originály při reprodukci chyby nebyly zveřejněny; tester použil syntetický ZIP.

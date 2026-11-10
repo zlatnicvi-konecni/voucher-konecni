@@ -23,6 +23,7 @@ test('private original: dimensions, front/outside pixels, text and decoded QR', 
     execFileSync('python', ['-c', `
 import sys,json,fitz
 from PIL import Image,ImageDraw,ImageChops
+if not __debug__: raise RuntimeError('PDF verifier requires enabled assertions')
 source,output,manifest,image=sys.argv[1:]
 a=fitz.open(source);b=fitz.open(output);config=json.load(open(manifest));layout=config['layout']
 assert len(a)==len(b)==2
@@ -40,7 +41,7 @@ for i in range(2):
   assert 'TEST-NEPLATNY-'+str(config['amount']) in b[i].get_text()
   assert '10.11.2028' in b[i].get_text()
  assert diff.getbbox() is None
-`, source, output, manifest, path.join(dir, 'scan.png')], { cwd: dir, stdio: 'pipe' });
+`, source, output, manifest, path.join(dir, 'scan.png')], { cwd: dir, stdio: 'pipe', env: { ...process.env, PYTHONOPTIMIZE: '0' } });
     const png = PNG.sync.read(await readFile(path.join(dir, 'scan.png')));
     const decoded = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
     assert.equal(decoded?.data, `TEST-NEPLATNY-${proposedTemplate.amount}`);

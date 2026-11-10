@@ -11,18 +11,21 @@ if (!archive || !directory || extra.length) {
     execFileSync('python', ['-c', `
 import sys,pathlib,json,zipfile,hashlib,os
 archive,out,repo,manifest=sys.argv[1:];out=pathlib.Path(out).resolve();repo=pathlib.Path(repo).resolve()
-assert out!=repo and repo not in out.parents,'Private directory must be outside public checkout'
+if out==repo or repo in out.parents: raise ValueError('Private directory must be outside public checkout')
 records=json.loads(manifest);verified=[]
 with zipfile.ZipFile(archive) as z:
  for entry in records:
   matches=[i for i in z.infolist() if i.filename==entry['archiveName']]
-  assert len(matches)==1 and matches[0].file_size<=30*1024*1024,'Unexpected archive entry'
-  data=z.read(matches[0]);assert hashlib.sha256(data).hexdigest()==entry['sha256'],'Original hash mismatch'
+  if len(matches)!=1 or matches[0].file_size>30*1024*1024: raise ValueError('Unexpected archive entry')
+  data=z.read(matches[0])
+  if hashlib.sha256(data).hexdigest()!=entry['sha256']: raise ValueError('Original hash mismatch')
   verified.append((entry['filename'],data))
 out.mkdir(parents=True,exist_ok=True,mode=0o700)
 for name,data in verified:
- target=out/name;assert not target.is_symlink(),'Symlink rejected'
- if target.exists(): assert target.read_bytes()==data,'Existing original differs'
+ target=out/name
+ if target.is_symlink(): raise ValueError('Symlink rejected')
+ if target.exists():
+  if target.read_bytes()!=data: raise ValueError('Existing original differs')
  else:
   fd=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
   with os.fdopen(fd,'wb') as f:f.write(data)

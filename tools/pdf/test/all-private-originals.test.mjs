@@ -55,6 +55,7 @@ test('all private originals: PAID → durable TEST code → exact PDF/QR, retrie
       execFileSync('python', ['-c', `
 import sys,json,fitz
 from PIL import Image,ImageDraw,ImageChops
+if not __debug__: raise RuntimeError('PDF verifier requires enabled assertions')
 source,output,expected,image=sys.argv[1:];config=json.load(open(expected))
 a=fitz.open(source);b=fitz.open(output);assert len(a)==len(b)==2
 for i in range(2):
@@ -69,7 +70,7 @@ for i in range(2):
   diff.paste((0,0,0),(0,0),mask);ib.save(image)
   assert config['code'] in b[i].get_text() and '01.01.2030' in b[i].get_text()
  assert diff.getbbox() is None
-`, path.join(directory, template.filename), output, expected, scan], { cwd: root, stdio: 'pipe' });
+`, path.join(directory, template.filename), output, expected, scan], { cwd: root, stdio: 'pipe', env: { ...process.env, PYTHONOPTIMIZE: '0' } });
       const png = PNG.sync.read(await readFile(scan));
       assert.equal(jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data, row.code);
       assert.equal(ledger.lookupFixture(row.code).status, 'PDF_READY');
